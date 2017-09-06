@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.oscar.cameratest.MainActivity"
+    android:orientation="horizontal"
+    android:baselineAligned="false"
+    android:weightSum="4"
+    android:background="#ffFF4500">
+
+
+    <FrameLayout
+        android:id="@+id/camera_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:ignore="InefficientWeight"
+        android:layout_weight="1">
+
+        <com.example.oscar.DrawHelper.RectangleDrawer
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/rdRect"
+            />
+
+        <RelativeLayout
+            android:id="@+id/rlLayout"
+            android:layout_width="185dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end">
+
+            <Button
+                android:id="@+id/btnSearch"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#ff4169E1"
+                android:text="@string/buscar" />
+
+            <EditText
+                android:id="@+id/etWrite"
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:background="#ffFF450f"
+                android:ems="10"
+                android:hint="@string/hint_buscar"
+                android:inputType="textPersonName"
+                android:visibility="invisible" />
+
+            <Button
+                android:id="@+id/btnWrite"
+                android:layout_width="150dp"
+                android:layout_height="30dp"
+                android:layout_centerHorizontal="true"
+                android:layout_below="@+id/etWrite"
+                android:background="@android:drawable/ic_menu_search"
+                android:visibility="invisible" />
+        </RelativeLayout>
+
+    </FrameLayout>
+
+
+</LinearLayout>

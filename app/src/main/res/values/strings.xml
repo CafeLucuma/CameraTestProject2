@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">CameraTest</string>
+    <string name="buscar">Buscar</string>
+    <string name="buscar_palabra">Buscar Palabra</string>
+    <string name="escanear_documento">Escanear Documento</string>
+    <string name="search_hint">Buscar palabra...</string>
+    <string name="hint_buscar">Buscar...</string>
+</resources>
