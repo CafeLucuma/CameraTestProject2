@@ -36,9 +36,13 @@ import com.example.oscar.DocumentHelper.DocumentHandler;
 import com.example.oscar.DrawHelper.RectangleDrawer;
 import com.example.oscar.Models.HOCRModel;
 import com.example.oscar.Models.HighlightModel;
+import com.example.oscar.OpenCVHelper.ImageProcessor;
+import com.example.oscar.OpenCVHelper.PhysicalDocumentFunctions;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.googlecode.tesseract.android.ResultIterator;
 import com.googlecode.tesseract.android.TessBaseAPI;
+
+import org.opencv.android.OpenCVLoader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -48,6 +52,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Policy;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.jar.Manifest;
 
@@ -59,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static final int REQUEST_CODE = 100;
     public static final int PERMISSION_REQUEST = 200;
+    private static final String TAG_APP = "MainActivity";
     private ArrayList<String> words = new ArrayList<>();
     private ArrayList<int[]> bboxes = new ArrayList<>();
     private ArrayList<int[]> bboxesToDraw = new ArrayList<>();
@@ -76,18 +82,38 @@ public class MainActivity extends AppCompatActivity {
     private String datapath;
     private HOCRModel hocr;
     private HighlightModel hm;
+    private boolean sincronizarDocFisico = false;
     private Camera.PictureCallback mPicture = new Camera.PictureCallback() {
 
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
 
             //new CameraSaveFile().execute(data);
-            new TesseractHelper().execute(data, editView.getText().toString());
-            isTakingPicture = false;
+            if(sincronizarDocFisico)
+            {
+                PhysicalDocumentFunctions doc = new PhysicalDocumentFunctions(hocr, data);
+                sincronizarDocFisico = false;
+            }
+            else
+            {
+                new TesseractHelper().execute(data, editView.getText().toString());
+            }
             mCamera.startPreview();
-
+            isTakingPicture = false;
         }
     };
+
+
+    //cargar opencv
+    static {
+        if(!OpenCVLoader.initDebug())
+            Log.i(TAG_APP, "OpenCV not loaded");
+        else
+        {
+            Log.i(TAG_APP, "OpenCV loaded");
+        }
+    }
+
 
 
     //resultado de actividad escanear documento
@@ -135,11 +161,22 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, REQUEST_CODE);
                 break;
 
-            //sincronizar palabras subrayadas de documento fisico con digital
+            //sincronizar palabras subrayadas de documento fisico con digital y viceversa
             case R.id.action_sincronize:
-                //obtener palabras en highlight de documento
+                //obtener palabras en highlight de documento digital
                 hm = DocumentHandler.getHighlights(hocr.numLines);
                 sincronizarHilight();
+
+                //obtener palabras subrayadas de documento físico
+                //para hacerlo, se saca foto al documento y se envía a opencv
+                if(!isTakingPicture)
+                {
+                    // get an image from the camera
+                    mCamera.takePicture(null, null, mPicture);
+                    sincronizarDocFisico = true;
+                    isTakingPicture = true;
+                }
+
                 break;
         }
 
@@ -379,29 +416,27 @@ public class MainActivity extends AppCompatActivity {
 
         ///////para cada linea de higlight
         bboxesToDraw.clear();
+
         //linea
         int i = 0;
 
-        //palabra
-        int j = 0;
-
-        int indicePalabra;
-
-        for (ArrayList<String> palabrasLinea: hm.palabras)
+        LinkedList bboxesLineCopy = (LinkedList) hocr.bboxesLine.clone();
+        //TODO top y bottom deben ser de la linea (hocr.lineTopBottomPixels)
+        for (ArrayList<Integer> palabrasLinea: hm.wordOffset)
         {
             //para cada palabra
-            for (String palabra: palabrasLinea)
+            for (int offsetPalabra: palabrasLinea)
             {
-                   for(int m = 0; m < hocr.wordsLine.get(i).length; m++)
-                   {
-                       if(palabra.equalsIgnoreCase(hocr.wordsLine.get(i)[m]))
-                       {
-                           indicePalabra = m;
-                           //buscar bbox correspondiente
-                           ArrayList<int[]> bboxLine = (ArrayList<int[]>) hocr.bboxesLine.get(i);
-                           bboxesToDraw.add(bboxLine.get(indicePalabra));
-                       }
-                   }
+
+                //buscar bbox correspondiente
+                int[] bboxex = new int[4];
+                ArrayList<int[]> bboxLine = (ArrayList<int[]>) bboxesLineCopy.get(i);
+
+                bboxex[0] = bboxLine.get(offsetPalabra)[0];
+                bboxex[1] = hocr.lineTopBottomPixels.get(i)[0];
+                bboxex[2] = bboxLine.get(offsetPalabra)[2];
+                bboxex[3] = hocr.lineTopBottomPixels.get(i)[1];
+                bboxesToDraw.add(bboxex);
             }
             i++;
         }
@@ -422,7 +457,8 @@ public class MainActivity extends AppCompatActivity {
         protected int[] doInBackground(Object... params) {
 
             imageByte = (byte[]) params[0];
-            image = BitmapFactory.decodeByteArray(imageByte, 0, imageByte.length);
+            ImageProcessor imageProcessor = new ImageProcessor(imageByte);
+            image = imageProcessor.cleanImage();
             palabra = (String) params[1];
 
             if(mTess == null)

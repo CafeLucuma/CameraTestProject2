@@ -23,6 +23,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     {
         super(context);
         mCamera = camera;
+        // get Camera parameters
+        Camera.Parameters params = mCamera.getParameters();
+        // set the focus mode
+        params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
+        // set Camera parameters
+        mCamera.setParameters(params);
+
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
         mHolder = getHolder();

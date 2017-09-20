@@ -22,6 +22,7 @@ public class DocumentHandler {
 
     private static File mediaStorageDir;
     private static File file;
+    private static final String NOMBRE_ARCHIVO_HIGHLIGHTS = "prueba-highlights-text-editor.txt";
     public static boolean docExists(String filename) {
         // To be safe, you should check that the SDCard is mounted
         // using Environment.getExternalStorageState() before doing this.
@@ -137,37 +138,39 @@ public class DocumentHandler {
         Log.i("DocumentHandler: highlightModel", "GETHIGHLIGHTS");
 
         file = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + "prueba-coor.txt");
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_HIGHLIGHTS);
         HighlightModel hm = new HighlightModel(numLines);
         try
         {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String linea;
-            String palabrasLinea;
+            String offsetPalabraString;
             int lineaNum;
 
             //lee número de línea
             while ((linea = br.readLine()) != null) {
                 lineaNum = Integer.parseInt(linea);
-                palabrasLinea = br.readLine();
+                offsetPalabraString = br.readLine();
                 //palabras highlight en array de string
-                String[] palabrasArray = palabrasLinea.split("\\s+");
-                ArrayList<String> palabrasArrayList = new ArrayList<>();
+                String[] palabrasArray = offsetPalabraString.split("\\s+");
+                //pasar el offset de string a int
                 for (String palabra: palabrasArray)
                 {
-                    //añadir arralist de palabras highlightmodel
-                    hm.palabras.get(lineaNum).add(palabra);
+                    //añadir arrayList de palabras highlightmodel
+                    //hm.palabras.get(lineaNum).add(palabra);
+                    int offsetPalabra = Integer.parseInt(palabra);
+                    hm.wordOffset.get(lineaNum).add(offsetPalabra);
                 }
 
             }
             int a = 0;
-            for (ArrayList<String> uno: hm.palabras)
+            for (ArrayList<Integer> uno: hm.wordOffset)
             {
                 Log.i("DocumentHandler: highlightModel", "linea " + a);
                 a++;
-                for (String palabra: uno)
+                for (int palabra: uno)
                 {
-                    Log.i("DocumentHandler: highlightModel", palabra);
+                    Log.i("DocumentHandler: highlightModel", "offset palabra " + palabra);
                 }
 
             }
