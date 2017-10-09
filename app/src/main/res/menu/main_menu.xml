@@ -4,8 +4,11 @@
 
     <item
         android:id="@+id/action_scan"
-        android:title="@string/escanear_documento"
-        app:showAsAction="never" />
+        android:title="@string/escanear_documento" />
+    <item
+        android:id="@+id/action_activarComentarios"
+        android:enabled="false"
+        android:title="Activar Comentarios" />
     <item
         android:id="@+id/action_sincronize"
         android:title="Sincronizar"

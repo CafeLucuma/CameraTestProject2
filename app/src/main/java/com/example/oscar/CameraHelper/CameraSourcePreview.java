@@ -1,6 +1,7 @@
 package com.example.oscar.CameraHelper;
 
 import android.content.Context;
+import android.hardware.Camera;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
@@ -30,7 +31,8 @@ public class CameraSourcePreview extends SurfaceView implements SurfaceHolder.Ca
         super(context);
 
         barcodeDetector = new BarcodeDetector.Builder(context).setBarcodeFormats(Barcode.QR_CODE).build();
-        cameraSource = new CameraSource.Builder(context, barcodeDetector).setRequestedFps(15.0f).setRequestedPreviewSize(640, 480).build();
+        cameraSource = new CameraSource.Builder(context, barcodeDetector).setRequestedFps(15.0f)
+                .setRequestedPreviewSize(640, 480).build();
 
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.

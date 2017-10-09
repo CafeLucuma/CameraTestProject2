@@ -17,7 +17,7 @@ public class HOCRModel {
     //palabras por linea (index = numero de linea)
     public ArrayList<String[]> wordsLine;
 
-    //boundingboxes de palabras respectivas a wordsline por linea (index = numero de linea)
+    //boundingboxes de palabras segun index (index 0 = palabra[0])
     public ArrayList<int[]> bboxes;
 
     //contiene las lineas con sus bboxes
@@ -39,6 +39,5 @@ public class HOCRModel {
     public ArrayList<String[]> getWordsLine() {
         return wordsLine;
     }
-
 
 }

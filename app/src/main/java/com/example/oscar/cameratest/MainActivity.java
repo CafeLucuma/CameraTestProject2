@@ -1,5 +1,7 @@
 package com.example.oscar.cameratest;
 
+import android.app.ActionBar;
+import android.app.Activity;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +13,7 @@ import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -22,10 +25,14 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -34,6 +41,7 @@ import com.example.oscar.CameraHelper.CameraSaveFile;
 import com.example.oscar.CameraHelper.CameraSourcePreview;
 import com.example.oscar.DocumentHelper.DocumentHandler;
 import com.example.oscar.DrawHelper.RectangleDrawer;
+import com.example.oscar.Models.CommentModel;
 import com.example.oscar.Models.HOCRModel;
 import com.example.oscar.Models.HighlightModel;
 import com.example.oscar.OpenCVHelper.ImageProcessor;
@@ -59,21 +67,24 @@ import java.util.jar.Manifest;
 import static android.R.attr.left;
 import static android.R.attr.right;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
-
+//TODO inicializar commentAdapter y listview 
     public static final int REQUEST_CODE = 100;
     public static final int PERMISSION_REQUEST = 200;
     private static final String TAG_APP = "MainActivity";
     private ArrayList<String> words = new ArrayList<>();
     private ArrayList<int[]> bboxes = new ArrayList<>();
     private ArrayList<int[]> bboxesToDraw = new ArrayList<>();
+    private ArrayList<CommentModel> comments;
     private MenuItem sincronizar;
+    private MenuItem activarComentarios;
     private Button searchButton;
     private Button captureButton;
     private EditText editView;
     private FrameLayout preview;
     private RelativeLayout relativeLayout;
+    private ListView listViewComments;
     private RectangleDrawer rect;
     private Camera mCamera = null;
     private CameraPreview mPreview;
@@ -131,7 +142,48 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "QR: " + "'" + barcode.displayValue + "'" + " existe", Toast.LENGTH_LONG).show();
                     //hacer sincronizar clickable
                     sincronizar.setEnabled(true);
+                    activarComentarios.setEnabled(true);
                     hocr = DocumentHandler.getHOCR(barcode.displayValue.toString());
+                    //cargar comentarios del documento físico
+                    comments = DocumentHandler.cargarComentarios();
+                    if(comments == null)
+                    {
+                        activarComentarios.setEnabled(false);
+                        Toast.makeText(this, "No se pudieron cargar los comentrios", Toast.LENGTH_SHORT).show();
+
+                    }
+                    else
+                    {
+                        List<String> comentariosString = new ArrayList<>();
+                        for (CommentModel com: comments)
+                        {
+                            comentariosString.add(com.getComentario());
+                        }
+                        CustomCommentAdapter adapter = new CustomCommentAdapter(getApplicationContext(), R.layout.comment_row, comentariosString);
+                        listViewComments.setAdapter(adapter);
+                        listViewComments.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                Log.i("CAMERATEST: LISTVIEW, Position: ", " " + position);
+                                Log.i("CAMERATEST: LISTVIEW, Id: ", " " + id);
+
+                                //highlisght a palabra comentada en pantalla
+                                bboxesToDraw.clear();
+                                ArrayList<Integer> indexPalabrasHighlight =  comments.get(position).getIndexPalabrasSeleccionadas();
+                                for (int indexPalabra : indexPalabrasHighlight)
+                                {
+                                    int[] bboxes = new int[4];
+                                    bboxes[0] = hocr.bboxes.get(indexPalabra)[0];
+                                    bboxes[1] = hocr.bboxes.get(indexPalabra)[1];
+                                    bboxes[2] = hocr.bboxes.get(indexPalabra)[2];
+                                    bboxes[3] = hocr.bboxes.get(indexPalabra)[3];
+
+                                    bboxesToDraw.add(bboxes);
+                                }
+                                draw(false);
+                            }
+                        });
+                    }
                 }
                 else
                     Toast.makeText(getApplicationContext(), "QR: " + "'" + barcode.displayValue + "'" + " No existe", Toast.LENGTH_LONG).show();
@@ -145,6 +197,7 @@ public class MainActivity extends AppCompatActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main_menu, menu);
         sincronizar = menu.findItem(R.id.action_sincronize);
+        activarComentarios = menu.findItem(R.id.action_activarComentarios);
 
         return true;
     }
@@ -178,13 +231,31 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 break;
+
+            case R.id.action_activarComentarios:
+                //hacer comentarios visibles
+                if(listViewComments != null)
+                {
+                    if(listViewComments.getVisibility() == View.INVISIBLE)
+                    {
+                        listViewComments.setVisibility(View.VISIBLE);
+                        activarComentarios.setTitle("Desactivar Comentarios");
+                    }
+                    else
+                    {
+                        listViewComments.setVisibility(View.INVISIBLE);
+                        activarComentarios.setTitle("Activar Comentarios");
+                    }
+
+                }
+                break;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -215,10 +286,13 @@ public class MainActivity extends AppCompatActivity {
 
         // Create our Preview view and set it as the content of our activity.
         mPreview = new CameraPreview(this, mCamera);
+        Camera.Size previewSize = mPreview.getPreviewSize();
         preview = (FrameLayout) findViewById(R.id.camera_preview);
-        preview.setLayoutParams(new LinearLayout.LayoutParams(1024, 576));
         relativeLayout = (RelativeLayout) findViewById(R.id.rlLayout);
+        preview.setLayoutParams(new RelativeLayout.LayoutParams(previewSize.width, previewSize.height));
         preview.addView(mPreview);
+        listViewComments = (ListView) findViewById(R.id.lvComments);
+
         //para dibujar los rectangulos en las palabras
         rect = (RectangleDrawer) findViewById(R.id.rdRect);
         relativeLayout.bringToFront();
@@ -230,10 +304,13 @@ public class MainActivity extends AppCompatActivity {
         editView = (EditText) findViewById(R.id.etWrite);
         editView.bringToFront();
 
+
         rect.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 Log.i("CAMERATEST: rectangledrawrew", "se toco la pantalla");
+                Log.i("CAMERATEST: postExecute", "framelayout width height: " + preview.getWidth() + " " + preview.getHeight());
+                Log.i("CAMERATEST: postExecute", "razon de width: " + (double)(2560 / preview.getWidth() ));
                 rect.clear();
                 relativeLayout.bringToFront();
                 return false;
@@ -410,6 +487,10 @@ public class MainActivity extends AppCompatActivity {
 
     public void sincronizarHilight()
     {
+
+        if(hm == null)
+            return;
+
         //para cada linea de higlightModel, buscar esa palabra en hocrModel
         //una vez que se encuentra, obtener su índice, y buscar ese indice en bboxes
         //ese bboxes mandarlo a draw
@@ -427,7 +508,6 @@ public class MainActivity extends AppCompatActivity {
             //para cada palabra
             for (int offsetPalabra: palabrasLinea)
             {
-
                 //buscar bbox correspondiente
                 int[] bboxex = new int[4];
                 ArrayList<int[]> bboxLine = (ArrayList<int[]>) bboxesLineCopy.get(i);
@@ -521,24 +601,6 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(int[] s)
         {
             super.onPostExecute(s);
-            Log.i("CAMERATEST: postExecute", "framelayout width height: " + preview.getWidth() + " " + preview.getHeight());
-            Log.i("CAMERATEST: postExecute", "razon de width: " + (double)(2560 / preview.getWidth() ));
-
-            Camera.Parameters params = mCamera.getParameters();
-            List<Camera.Size> previewSizes = params.getSupportedPreviewSizes();
-            List<Camera.Size> pictureSizes = params.getSupportedPictureSizes();
-            List<Camera.Size> videoSizes = params.getSupportedVideoSizes();
-            for (Camera.Size sizes: previewSizes) {
-                Log.i("CAMERATEST: postExecute", "previewSize: " + sizes.width + " x " + sizes.height);
-            }
-
-            for (Camera.Size sizes: pictureSizes) {
-                Log.i("CAMERATEST: postExecute", "pictureSizes: " + sizes.width + " x " + sizes.height);
-            }
-
-             for (Camera.Size sizes: videoSizes) {
-                Log.i("CAMERATEST: postExecute", "videoSizes: " + sizes.width + " x " + sizes.height);
-            }
 
             if(bboxesToDraw.isEmpty())
                 Toast.makeText(getApplicationContext(), "No se encontró la palabra buscada", Toast.LENGTH_SHORT).show();

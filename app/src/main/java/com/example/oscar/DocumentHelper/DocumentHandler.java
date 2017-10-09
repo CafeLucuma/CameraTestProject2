@@ -4,6 +4,7 @@ import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.util.Log;
 
+import com.example.oscar.Models.CommentModel;
 import com.example.oscar.Models.HOCRModel;
 import com.example.oscar.Models.HighlightModel;
 
@@ -23,6 +24,8 @@ public class DocumentHandler {
     private static File mediaStorageDir;
     private static File file;
     private static final String NOMBRE_ARCHIVO_HIGHLIGHTS = "prueba-highlights-text-editor.txt";
+    public static final String NOMBRE_ARCHIVO_COMENTARIOS = "comentarios.txt";
+
     public static boolean docExists(String filename) {
         // To be safe, you should check that the SDCard is mounted
         // using Environment.getExternalStorageState() before doing this.
@@ -74,6 +77,7 @@ public class DocumentHandler {
             String bboxesStringLine;
             String[] bboxesStringArr;
             int lineaNum;
+            hocr.bboxes = new ArrayList<>();
 
             //lee número de línea
             while ((linea = br.readLine()) != null) {
@@ -87,7 +91,10 @@ public class DocumentHandler {
                 //lee palabras en la linea
                 palabras = br.readLine();
                 hocr.wordsLine.add(palabras.split("\\s+"));
-                hocr.bboxes = new ArrayList<>();
+
+                ArrayList<int[]> bboxesPorLinea = new ArrayList<>();
+                //hocr.bboxes = new ArrayList<>();
+
                 for(int i = 0; i < hocr.wordsLine.get(lineaNum).length; i++)
                 {
                     int[] bboxes = new int[4];
@@ -99,10 +106,11 @@ public class DocumentHandler {
                     {
                         bboxes[j] = Integer.parseInt(bboxesStringArr[j]);
                     }
+                    bboxesPorLinea.add(bboxes);
                     hocr.bboxes.add(bboxes);
                 }
                 //añadir array de bboxes a linkedlist
-                hocr.bboxesLine.add(hocr.bboxes.clone());
+                hocr.bboxesLine.add(bboxesPorLinea.clone());
             }
             //log
             for (String[] palabrasPorLinea: hocr.wordsLine)
@@ -121,9 +129,15 @@ public class DocumentHandler {
                 ArrayList<int[]> arrayListInt = (ArrayList<int[]>) uno;
                 for (int[] dos: arrayListInt)
                 {
-                    Log.i("DocumentHandler: bboxes", " bbox: " + dos[0] + " " +dos[1] + " " +dos[2] + " " +dos[3]);
+                    Log.i("DocumentHandler: bboxesLine", " bbox: " + dos[0] + " " +dos[1] + " " +dos[2] + " " +dos[3]);
                 }
             }
+
+            for (int[] bb: hocr.bboxes)
+            {
+                Log.i("DocumentHandler: hocr.bboxes", " bbox: " + bb[0] + " " + bb[1] + " " + bb[2] + " " + bb[3]);
+            }
+
             br.close();
         }
         catch (IOException e) {
@@ -139,6 +153,10 @@ public class DocumentHandler {
 
         file = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_HIGHLIGHTS);
+
+        if(!file.exists())
+            return null;
+
         HighlightModel hm = new HighlightModel(numLines);
         try
         {
@@ -183,6 +201,76 @@ public class DocumentHandler {
         }
 
         return hm;
+    }
+
+    public static ArrayList<CommentModel> cargarComentarios()
+    {
+        file = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_COMENTARIOS);
+
+        if(!file.exists())
+            return null;
+
+        ArrayList<CommentModel> comments = new ArrayList<>();
+
+        //Read text from comments
+        StringBuilder text = new StringBuilder();
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                Log.i("Comments", "Primera linea leida" + line);
+
+                CommentModel comment = new CommentModel();
+                //lee offset comentario
+                String[] lineAux = line.split("\\s");
+                int offset0 = Integer.parseInt(lineAux[0]);
+                int offset1 = Integer.parseInt(lineAux[1]);
+                comment.setOffsetComentarios(new int[]{offset0, offset1});
+
+                //leer index palabras comentadas
+                line = br.readLine();
+                Log.i("Comments", "Segunda linea leida" + line);
+                String[] lineAux2 = line.split("\\s");
+                ArrayList<Integer> indexPalabrasComentadas = new ArrayList<>();
+                for (String index: lineAux2)
+                {
+                    indexPalabrasComentadas.add(Integer.parseInt(index));
+                }
+                comment.setIndexPalabrasSeleccionadas(indexPalabrasComentadas);
+
+                //leer comentarios
+                line = br.readLine();
+                Log.i("Comments", "Tercera linea leida" + line);
+                StringBuilder lineAux3 = new StringBuilder();
+                while(!line.matches("[\\n\\r]+") && !line.isEmpty())
+                {
+                    lineAux3.append(line);
+                    lineAux3.append('\n');
+                    line = br.readLine();
+                    Log.i("Comments", "Tercera linea leida" + line);
+                }
+                comment.setComentario(lineAux3.toString());
+
+                comments.add(comment);
+            }
+            br.close();
+        } catch (IOException e) {
+            //You'll need to add proper error handling here
+        }
+
+        for (CommentModel com : comments)
+        {
+            Log.i("Comments", "Comentarios: " + com.getComentario() + " " +
+                    com.getOffsetComentarios()[0] + "-" + com.getOffsetComentarios()[1]);
+            for (int ind: com.getIndexPalabrasSeleccionadas())
+            {
+                Log.i("Comments", "Index palabras seleccionadas: " + ind);
+            }
+        }
+
+        return comments;
     }
 
 }

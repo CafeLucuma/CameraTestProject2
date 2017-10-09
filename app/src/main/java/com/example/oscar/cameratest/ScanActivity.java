@@ -3,6 +3,7 @@ package com.example.oscar.cameratest;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.content.ContextCompat;
@@ -29,7 +30,8 @@ public class ScanActivity extends AppCompatActivity {
     SurfaceHolder holder;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan);
 
@@ -47,7 +49,6 @@ public class ScanActivity extends AppCompatActivity {
         cameraSource = new CameraSource.Builder(this, barcodeDetector)
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
                 .setRequestedFps(50)
-                .setRequestedPreviewSize(720, 480)
                 .build();
 
         cameraView.getHolder().addCallback(new SurfaceHolder.Callback() {
