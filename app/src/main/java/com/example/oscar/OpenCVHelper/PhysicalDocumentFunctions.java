@@ -2,10 +2,9 @@ package com.example.oscar.OpenCVHelper;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
-import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.example.oscar.Models.HOCRModel;
 import com.example.oscar.Models.HighlightModel;
@@ -24,7 +23,6 @@ import org.opencv.utils.Converters;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +31,8 @@ import java.util.List;
  * Created by Oscar on 06-09-2017.
  */
 
-public class PhysicalDocumentFunctions {
-
+public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
+{
     private HOCRModel hocrModel;
     private HighlightModel highlightModel;
     private Bitmap image;
@@ -45,14 +43,23 @@ public class PhysicalDocumentFunctions {
     private ArrayList<int[]> minX_MaxX;
     private ArrayList<int[]> minY_MaxY;
     private File file;
-    private final String TAG = "prueba-subrayados.txt";
-    private boolean save = false;
+    private final String NOMBRE_ARCHIVO_SUBRAYADOS = "prueba-subrayados.txt";
 
-    public PhysicalDocumentFunctions(HOCRModel hocrModel, byte[] data)
+    public PhysicalDocumentFunctions(HOCRModel hocrModel)
     {
         this.hocrModel = hocrModel;
         this.highlightModel = new HighlightModel(hocrModel.numLines);
 
+        //inicializar arreglos
+        minX_MaxX = new ArrayList<>();
+        minY_MaxY = new ArrayList<>();
+    }
+
+    @Override
+    protected Void doInBackground(Object... params) {
+
+        Log.i("PhysicalDocumentHandler: palabras", "doingBackground");
+        byte[] data = (byte[]) params[0];
         image = BitmapFactory.decodeByteArray(data, 0, data.length);
         //transformar bitmap a mat
         imageMat = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8UC3);;
@@ -63,17 +70,6 @@ public class PhysicalDocumentFunctions {
         Imgproc.cvtColor(imageMat, imageMat, Imgproc.COLOR_BGR2RGB,4);
         image32.recycle();
         image32 = null;
-
-        //inicializar arreglos
-        minX_MaxX = new ArrayList<>();
-        minY_MaxY = new ArrayList<>();
-
-        //analizar imagen
-        analyzeImage();
-    }
-
-    public void analyzeImage()
-    {
 
         Mat outputImage = new Mat();
         //BGR BLUE GREEN RED
@@ -114,14 +110,14 @@ public class PhysicalDocumentFunctions {
                 if(point.x > maxX)
                     maxX = (int) point.x;
                 else
-                    if(point.x < minX)
-                        minX = (int) point.x;
+                if(point.x < minX)
+                    minX = (int) point.x;
 
                 if(point.y > maxY)
                     maxY = (int) point.y;
                 else
-                    if(point.y < minY)
-                        minY = (int) point.y;
+                if(point.y < minY)
+                    minY = (int) point.y;
             }
             Log.i("OpenCV", "contours: minX " + minX + " maxX " + maxX);
             Log.i("OpenCV", "contours: minY " + minY + " maxY " + maxY);
@@ -244,16 +240,18 @@ public class PhysicalDocumentFunctions {
             numLinea++;
         }
 
-        saveHighlights();
-
+        return null;
     }
 
-    //función encargada de guardar las líneas e indices de palabras subrayadas en el doc físico
-    public void saveHighlights()
-    {
+    @Override
+    protected void onPostExecute(Void aVoid) {
+        super.onPostExecute(aVoid);
 
         file = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + TAG);
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_SUBRAYADOS);
+
+        if(file.exists())
+            file.delete();
 
         FileOutputStream f = null;
         try {

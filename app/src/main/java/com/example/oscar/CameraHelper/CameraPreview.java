@@ -4,11 +4,15 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import com.example.oscar.Models.HOCRModel;
+import com.example.oscar.OpenCVHelper.ImageProcessor;
+import com.example.oscar.OpenCVHelper.PhysicalDocumentFunctions;
 import com.example.oscar.cameratest.MainActivity;
 
 import java.io.ByteArrayOutputStream;
@@ -28,16 +32,40 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 {
     private SurfaceHolder mHolder;
     private Camera mCamera;
-    private int i = 0;
+    private boolean sincronizar = false;
+    private PhysicalDocumentFunctions doc;
+
+    public boolean isSincronizar() {
+        return sincronizar;
+    }
+
+    public void setSincronizar(boolean sincronizar) {
+        this.sincronizar = sincronizar;
+    }
+
+    public HOCRModel getHocr() {
+        return hocr;
+    }
+
+    public void setHocr(HOCRModel hocr) {
+        this.hocr = hocr;
+    }
+
+    private HOCRModel hocr;
+
+
+
 
     public CameraPreview(Context context, Camera camera)
     {
         super(context);
+
         mCamera = camera;
         // get Camera parameters
         Camera.Parameters params = mCamera.getParameters();
         // set the focus mode
         params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
+        List<int[]> previewFPSRange = params.getSupportedPreviewFpsRange();
         // set Camera parameters
         mCamera.setParameters(params);
 
@@ -85,6 +113,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Log.i("CAMERATEST: postExecute", "preferedVideoSize Now: " + preferedVideoSize.width + " x " + preferedVideoSize.height);
             Log.i("CAMERATEST: postExecute", "previewSize Now: " + previewSize.width + " x " + previewSize.height);
             Log.i("CAMERATEST: postExecute", "previewFormat Now: " + previewFormat);
+            for (int[] i: previewFPSRange)
+            {
+                Log.i("CAMERATEST: postExecute", "previewFPSRAnge: " );
+                for (int fps: i)
+                {
+                    Log.i("CAMERATEST: postExecute", "fps: " + fps);
+                }
+            }
 
         } catch (IOException e) {
             Log.d("MyCameraApp", "Error starting camera preview: " + e.getMessage());
@@ -142,54 +178,54 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void onPreviewFrame(byte[] data, Camera camera)
     {
-        if(i < 5)
+        if(sincronizar)
         {
-            Camera.Parameters parameters = camera.getParameters();
-            int width = parameters.getPreviewSize().width;
-            int height = parameters.getPreviewSize().height;
-
-            YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
-
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
-
-            byte[] bytes = out.toByteArray();
-
             Log.i("CameraPreview", "frame");
-            // To be safe, you should check that the SDCard is mounted
-            // using Environment.getExternalStorageState() before doing this.
 
-            File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_PICTURES), "MyCameraApp");
-            // This location works best if you want the created images to be shared
-            // between applications and persist after your app has been uninstalled.
+            if(doc == null)
+            {
+                doc = new PhysicalDocumentFunctions(hocr);
+                Camera.Parameters parameters = camera.getParameters();
+                int width = parameters.getPreviewSize().width;
+                int height = parameters.getPreviewSize().height;
 
-            // Create the storage directory if it does not exist
-            if (! mediaStorageDir.exists()){
-                if (! mediaStorageDir.mkdirs()){
-                    Log.d("MyCameraApp", "failed to create directory");
+                YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
+
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
+
+                byte[] bytes = out.toByteArray();
+
+                doc.execute(bytes);
+                Log.i("CameraPreview", "frame: doc null");
+
+            }
+
+            if(doc.getStatus() == AsyncTask.Status.RUNNING)
+            {
+                Log.i("CameraPreview", "frame: task running");
+                return;
+            }
+            else
+            {
+                if(doc.getStatus() == AsyncTask.Status.FINISHED)
+                {
+                    Log.i("CameraPreview", "frame: task finished");
+                    doc = new PhysicalDocumentFunctions(hocr);
+                    Camera.Parameters parameters = camera.getParameters();
+                    int width = parameters.getPreviewSize().width;
+                    int height = parameters.getPreviewSize().height;
+
+                    YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
+
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
+
+                    byte[] bytes = out.toByteArray();
+
+                    doc.execute(bytes);
                 }
             }
-
-            // Create a media file name
-            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            File mediaFile;
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "IMG_"+ timeStamp + ".jpg");
-
-            try {
-                FileOutputStream fos = new FileOutputStream(mediaFile);
-                fos.write(bytes);
-                fos.close();
-            } catch (FileNotFoundException e) {
-                Log.d("MyCameraApp", "File not found: " + e.getMessage());
-
-            } catch (IOException e) {
-                Log.d("MyCameraApp", "Error accessing file: " + e.getMessage());
-            }
         }
-
-
-        i++;
     }
 }

@@ -93,22 +93,12 @@ public class MainActivity extends Activity {
     private String datapath;
     private HOCRModel hocr;
     private HighlightModel hm;
-    private boolean sincronizarDocFisico = false;
     private Camera.PictureCallback mPicture = new Camera.PictureCallback() {
 
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
 
-            //new CameraSaveFile().execute(data);
-            if(sincronizarDocFisico)
-            {
-                PhysicalDocumentFunctions doc = new PhysicalDocumentFunctions(hocr, data);
-                sincronizarDocFisico = false;
-            }
-            else
-            {
-                new TesseractHelper().execute(data, editView.getText().toString());
-            }
+            new TesseractHelper().execute(data, editView.getText().toString());
             mCamera.startPreview();
             isTakingPicture = false;
         }
@@ -218,17 +208,9 @@ public class MainActivity extends Activity {
             case R.id.action_sincronize:
                 //obtener palabras en highlight de documento digital
                 hm = DocumentHandler.getHighlights(hocr.numLines);
+                mPreview.setSincronizar(true);
+                mPreview.setHocr(hocr);
                 sincronizarHilight();
-
-                //obtener palabras subrayadas de documento físico
-                //para hacerlo, se saca foto al documento y se envía a opencv
-                if(!isTakingPicture)
-                {
-                    // get an image from the camera
-                    mCamera.takePicture(null, null, mPicture);
-                    sincronizarDocFisico = true;
-                    isTakingPicture = true;
-                }
 
                 break;
 
@@ -462,11 +444,14 @@ public class MainActivity extends Activity {
         //layout in the activity that the cameraView will placed in
         int layoutWidth = preview.getWidth();
         int layoutHeight = preview.getHeight();
+        Camera.Size previewSize = mPreview.getPreviewSize();
+        int previewWidth = previewSize.width;
+        int previewHeight = previewSize.height;
 
         //razón del ancho
-        double reasonWidth = (double) 2560 / layoutWidth;
+        double reasonWidth = (double) previewWidth / layoutWidth;
         //razón del largo
-        double reasonHeight = (double) 1920 / layoutHeight;
+        double reasonHeight = (double) previewHeight / layoutHeight;
 
 
         for (int[] bb: bboxesToDraw)
@@ -539,6 +524,9 @@ public class MainActivity extends Activity {
             imageByte = (byte[]) params[0];
             ImageProcessor imageProcessor = new ImageProcessor(imageByte);
             image = imageProcessor.cleanImage();
+            Camera.Size previewSize = mPreview.getPreviewSize();
+            image = Bitmap.createScaledBitmap(image, previewSize.width, previewSize.height, false);
+            Log.i("CAMERATEST: HOCR: image width height: ",  image.getWidth() + " " + image.getHeight());
             palabra = (String) params[1];
 
             if(mTess == null)

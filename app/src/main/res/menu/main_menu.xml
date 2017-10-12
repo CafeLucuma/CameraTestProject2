@@ -4,15 +4,21 @@
 
     <item
         android:id="@+id/action_scan"
-        android:title="@string/escanear_documento" />
+        android:title="@string/escanear_documento"
+        android:background="#994876ff"
+        />
     <item
         android:id="@+id/action_activarComentarios"
         android:enabled="false"
-        android:title="Activar Comentarios" />
+        android:title="Activar Comentarios"
+        android:background="#994876ff"
+        />
     <item
         android:id="@+id/action_sincronize"
         android:title="Sincronizar"
         app:showAsAction="never"
         android:enabled="false"
+        android:background="#994876ff"
+
         />
 </menu>

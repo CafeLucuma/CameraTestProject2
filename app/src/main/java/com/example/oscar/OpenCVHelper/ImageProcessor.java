@@ -38,6 +38,7 @@ public class ImageProcessor {
         //transformar bitmap a mat
         imageMat = new Mat(image.getHeight(),image.getWidth(),CvType.CV_8UC3);;
         image32 = image.copy(Bitmap.Config.ARGB_8888, true);
+        Log.i("guardar bitmap", "image32 Width Height" + image32.getWidth() + " " + image32.getHeight());
         image.recycle();
         image = null;
         Utils.bitmapToMat(image32, imageMat);
