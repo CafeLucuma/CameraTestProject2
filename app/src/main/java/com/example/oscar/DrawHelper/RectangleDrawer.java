@@ -18,7 +18,22 @@ import java.util.ArrayList;
  * Created by oscar on 11-08-17.
  */
 
+//se encarga de dibujar en pantalla las words resaltadas
+
 public class RectangleDrawer extends View {
+
+    ArrayList<int[]> bboxes;
+    ArrayList<int[]> linesStartFinish;
+    int color;
+    private Paint paint;
+    private Paint linePaint;
+    private Rect rect;
+    private boolean paramsSeted = false;
+    private boolean clearSeted = false;
+    private boolean sincronizar = false;
+    private boolean comentar = false;
+
+
     public RectangleDrawer(Context context) {
         super(context);
         init();
@@ -34,58 +49,63 @@ public class RectangleDrawer extends View {
         init();
     }
 
-
-
-    ArrayList<int[]> bboxes;
-    int color;
-    private Paint paint;
-    private Rect rect;
-    private boolean paramsSeted = false;
-    private boolean clearSeted = false;
-    private boolean sincronizar = false;
-
-
     private void init()
     {
-
         color = Color.RED;
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(Color.parseColor("#aaB22222"));
         rect = new Rect();
     }
 
-
-    //comentariossssssssssssssssssssssssssssssssssssssssssssssssss
+    //sibuja en pantalla lo que se encuentra en bboxes
+    //utilizado para resaltar words en visón de documento físico
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if(sincronizar)
+        if (sincronizar)
             paint.setColor(Color.parseColor("#aaffff00"));
         else
-            paint.setColor(Color.parseColor("#aaB22222"));
+            if(comentar)
+            {
+                paint.setColor(Color.parseColor("#9900CED1"));
+                linePaint.setColor(Color.parseColor("#9900CED1"));
+                linePaint.setStrokeWidth(5);
+            }
+            else
+                paint.setColor(Color.parseColor("#aaB22222"));
 
-
-        if(clearSeted)
+        if (clearSeted)
         {
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
             clearSeted = false;
             return;
         }
 
-        if(!this.paramsSeted)
+        if (!this.paramsSeted)
             return;
 
         canvas.getClipBounds(rect);
 
-        for (int[] bb: this.bboxes)
+        int i = 0;
+        for (int[] bb : this.bboxes)
         {
             rect.left = bb[0];
             rect.right = bb[2];
             rect.top = bb[1];
             rect.bottom = bb[3];
             canvas.drawRect(rect, paint);
+            if(comentar)
+            {
+                canvas.drawLine(bb[2], bb[1], linesStartFinish.get(i)[0], linesStartFinish.get(i)[1], linePaint);
+                Log.i("RECTANGLEDRAWER", "coordenadas de lineas: rect " + bb[2] + " " + bb[1] + " lines: "
+                        + linesStartFinish.get(i)[0] + " " + linesStartFinish.get(i)[1] );
+            }
+            i++;
         }
+
+        comentar = false;
         paramsSeted = false;
     }
 
@@ -95,6 +115,7 @@ public class RectangleDrawer extends View {
         invalidate();
     }
 
+    //setParameters para subrayado y highlight
     public void setParameters(ArrayList<int[]> bboxes, boolean sinc)
     {
         this.sincronizar = sinc;
@@ -102,6 +123,17 @@ public class RectangleDrawer extends View {
         this.paramsSeted = true;
         invalidate();
     }
+
+    //setParameters para comentario
+    public void setParameters(ArrayList<int[]> bboxes, ArrayList<int[]> linesStartFinish)
+    {
+        this.bboxes = bboxes;
+        this.linesStartFinish = linesStartFinish;
+        this.comentar = true;
+        this.paramsSeted = true;
+        invalidate();
+    }
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -134,15 +166,4 @@ public class RectangleDrawer extends View {
     {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getContext().getResources().getDisplayMetrics());
     }
-
-
-/*    //limpiar pantalla cuando tocan
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        Log.i("CAMERATEST: rectangledrawrew", "se toco la pantalla");
-        clear();
-        return super.onTouchEvent(event);
-
-    }*/
-
 }

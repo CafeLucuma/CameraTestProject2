@@ -15,6 +15,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -26,26 +27,33 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Created by Oscar on 06-09-2017.
  */
 
-public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
+//se encarga de generar las coordenadas de las words que fueron subrayadas en el documento físico
+
+
+    //TODO hacer que detecte comentarios en este mismo task
+    //puede hacerse después de detectar subrayado
+public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, Void>
 {
     private HOCRModel hocrModel;
     private HighlightModel highlightModel;
     private Bitmap image;
     private Bitmap image32;
     private Mat imageMat;
+    private Bitmap imageOutputBitmap;
     private List<MatOfPoint> contours;
     private int minX = 3000, maxX = 0, minY = 3000, maxY = 0;
     private ArrayList<int[]> minX_MaxX;
     private ArrayList<int[]> minY_MaxY;
-    private File file;
     private final String NOMBRE_ARCHIVO_SUBRAYADOS = "prueba-subrayados.txt";
+    private final String NOMBRE_ARCHIVO_COMENTARIOS = "prueba-comentarios.jpg";
 
-    public PhysicalDocumentFunctions(HOCRModel hocrModel)
+    public PhysicalHighlightProcessorAsync(HOCRModel hocrModel)
     {
         this.hocrModel = hocrModel;
         this.highlightModel = new HighlightModel(hocrModel.numLines);
@@ -58,26 +66,34 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
     @Override
     protected Void doInBackground(Object... params) {
 
-        Log.i("PhysicalDocumentHandler: palabras", "doingBackground");
+        //Procesar comentarios primero
+        Log.i("PhysicalDocumentHandler: words", "doingBackground");
         byte[] data = (byte[]) params[0];
         image = BitmapFactory.decodeByteArray(data, 0, data.length);
         //transformar bitmap a mat
-        imageMat = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8UC3);;
+        imageMat = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8UC3);
         image32 = image.copy(Bitmap.Config.ARGB_8888, true);
         image.recycle();
         image = null;
         Utils.bitmapToMat(image32, imageMat);
+        //////////////RECORTAR IMAGEN
+        Log.i("PhysicalDocumentHandler", "boundingBoxBloque[1] - image.width: " + hocrModel.getBlockBoundingBox()[1] + "-" + image32.getWidth());
+        Rect rectCrop = new Rect(0, 0, image32.getWidth(), hocrModel.getBlockBoundingBox()[1]);
+        //cortar rectangulo
+        Mat imageOutputMat = imageMat.submat(rectCrop);
+        //pasar a bitmap
+        imageOutputBitmap = Bitmap.createBitmap(imageOutputMat.cols(), imageOutputMat.rows(),Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(imageOutputMat, imageOutputBitmap);
+        /////////////////////////////////
+
         Imgproc.cvtColor(imageMat, imageMat, Imgproc.COLOR_BGR2RGB,4);
         image32.recycle();
         image32 = null;
 
         Mat outputImage = new Mat();
         //BGR BLUE GREEN RED
-        Core.inRange(imageMat, new Scalar(70, 30, 90), new Scalar(120, 60, 170), outputImage);
-
-        //mat es BGR, bitmap es RGB, hay que cambiarlo
-        //Imgproc.cvtColor(outputImage, outputImage, Imgproc.COLOR_BGR2RGB);
-
+        //detectar color subrayado
+        Core.inRange(imageMat, new Scalar(70, 30, 90), new Scalar(130, 70, 170), outputImage);
         Log.i("OpenCV", "channel outputImage" + outputImage.channels());
 
         //ENCONTRAR CONTORNO DE LA IMAGEN
@@ -85,11 +101,12 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
         Imgproc.findContours(outputImage, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
         Imgproc.drawContours(outputImage, contours, -1, new Scalar(255,255,255), 3);
 
+        //erosión de imagen para rellenar el rectangulo
         int erosion_size = 5;
         int dilation_size = 5;
-
         Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2*erosion_size + 1, 2*erosion_size+1));
 
+        //los pixeles subrayados se expanden para cerrar el rectangulo
         Imgproc.dilate(outputImage, outputImage, element);
         Imgproc.erode(outputImage, outputImage, element);
         Mat hierarchy2 = new Mat();
@@ -141,8 +158,7 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
 
         }
 
-        //TODO modificarlo para que permita subrayar multiples palabras y lineas
-        //ver las palabras que estan en highlight
+        //ver las words que estan en highlight
         //ver linea que esta subrayada
         int numLinea = 0;
         boolean siguienteContorno = false;
@@ -153,11 +169,9 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
             for(int cantidadContornos = 0; cantidadContornos < minX_MaxX.size(); cantidadContornos++)
             {
                 Log.i("OpenCV", "Linea: " + numLinea + " num contorno: " + cantidadContornos);
-
                 siguienteContorno = false;
                 //si la parte de arriba del subrayado esta dentro de la parte de  abajo de la linea, esta linea se considera subrayada
                 //hay que arreglarlo para mejorar calidad
-                //TODO if no funciona bien porque considera contornos que no deberia
                 if((minY_MaxY.get(cantidadContornos)[0] < topBottomPixels[1]) && (minY_MaxY.get(cantidadContornos)[1] > topBottomPixels[0]))
                 {
                     //bboxesLine contiene las bboxes de cada palabra en la linea i
@@ -165,7 +179,9 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
                     int offsetWord = 0;
                     for (int[] bboxes: bboxesLine)
                     {
-                        Log.i("OpenCV", "palabra: " + hocrModel.wordsLine.get(numLinea)[offsetWord]
+                        if(offsetWord >= hocrModel.wordsPerLine.get(numLinea).length)
+                            break;
+                        Log.i("OpenCV", "palabra: " + hocrModel.wordsPerLine.get(numLinea)[offsetWord]
                                 + " bbox" + bboxes[0] + " " + bboxes[1] + " " + bboxes[2] + " " + bboxes[3]);
                         //si lado izquierdo de subrayado es menor que derecha de palabra
                         if(minX_MaxX.get(cantidadContornos)[0] < bboxes[2])
@@ -176,13 +192,13 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
                                 //ver si 50% o mas esta subrayado, si es así, se considera subrayada
                                 if(bboxes[2] - minX_MaxX.get(cantidadContornos)[0] >= (bboxes[2] - bboxes[0]) / 2)
                                 {
-                                    highlightModel.wordOffset.get(numLinea).add(offsetWord);
-                                    Log.i("OpenCV", "palabra añadida" + hocrModel.wordsLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
+                                    highlightModel.wordsIndex.get(numLinea).add(offsetWord);
+                                    Log.i("OpenCV", "palabra añadida" + hocrModel.wordsPerLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
                                     //save = true;
                                     //saveHighlights();
                                 }
 
-                                //resto de palabras en la linea
+                                //resto de words en la linea
                                 offsetWord++;
                                 List<int[]> restWords = bboxesLine.subList(offsetWord, bboxesLine.size());
                                 for (int[] bboxesRest: restWords)
@@ -194,9 +210,9 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
                                             //ver si abarca más de 50%
                                             if(minX_MaxX.get(cantidadContornos)[1] - bboxesRest[0] >= (bboxesRest[2] - bboxesRest[0]) / 2)
                                             {
-                                                //no abarca más palabras -> siguiente contorno
-                                                highlightModel.wordOffset.get(numLinea).add(offsetWord);
-                                                Log.i("OpenCV", "palabra añadida" + hocrModel.wordsLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
+                                                //no abarca más words -> siguiente contorno
+                                                highlightModel.wordsIndex.get(numLinea).add(offsetWord);
+                                                Log.i("OpenCV", "palabra añadida" + hocrModel.wordsPerLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
                                                 //saveHighlights();
                                                 siguienteContorno = true;
                                                 break;
@@ -204,13 +220,13 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
                                         }
                                         else
                                         {
-                                            highlightModel.wordOffset.get(numLinea).add(offsetWord);
-                                            Log.i("OpenCV", "palabra añadida" + hocrModel.wordsLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
+                                            highlightModel.wordsIndex.get(numLinea).add(offsetWord);
+                                            Log.i("OpenCV", "palabra añadida" + hocrModel.wordsPerLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
                                         }
                                     }
                                     else
                                     {
-                                        //no abarca más palabras -> siguiente contorno
+                                        //no abarca más words -> siguiente contorno
                                         //TIENE QUE CONTINUAR CON EL SIGUIENTE CONTORNO
                                         siguienteContorno = true;
                                         break;
@@ -223,8 +239,8 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
                                 //ver si 50% o mas esta subrayado, si es así, se considera subrayada y termina
                                 if(minX_MaxX.get(cantidadContornos)[1] - minX_MaxX.get(cantidadContornos)[0] > (bboxes[2] - bboxes[0]) / 2)
                                 {
-                                    highlightModel.wordOffset.get(numLinea).add(offsetWord);
-                                    Log.i("OpenCV", "palabra añadida" + hocrModel.wordsLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
+                                    highlightModel.wordsIndex.get(numLinea).add(offsetWord);
+                                    Log.i("OpenCV", "palabra añadida" + hocrModel.wordsPerLine.get(numLinea)[offsetWord] + " offset " + offsetWord);
                                     //termina = true;
                                     //saveHighlights();
                                     break;
@@ -239,39 +255,59 @@ public class PhysicalDocumentFunctions extends AsyncTask<Object, Object, Void>
             }
             numLinea++;
         }
-
         return null;
     }
 
+    //se encarga de guardar las palaras que han sido subrayadas
     @Override
     protected void onPostExecute(Void aVoid) {
         super.onPostExecute(aVoid);
 
-        file = new File(Environment.getExternalStoragePublicDirectory(
+        File fileHighlights = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_SUBRAYADOS);
 
-        if(file.exists())
-            file.delete();
+        //guardar la imagen recortada
+        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/commentImages");
 
+        if(!mediaStorageDir.exists())
+            mediaStorageDir.mkdir();
+
+        File fileComments = new File(mediaStorageDir, NOMBRE_ARCHIVO_COMENTARIOS);
+
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(fileComments);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        imageOutputBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+        imageOutputBitmap.recycle();
+
+        if(fileHighlights.exists())
+            fileHighlights.delete();
+
+
+        //guardar subrayados
         FileOutputStream f = null;
         try {
-            f = new FileOutputStream(file);
+            f = new FileOutputStream(fileHighlights);
             PrintWriter pw = new PrintWriter(f);
             //write en doc
             int numLinea = 0;
-            for (ArrayList<Integer> offsetPorLinea: highlightModel.wordOffset)
+            for (ArrayList<Integer> offsetPorLinea: highlightModel.wordsIndex)
             {
                 if(!offsetPorLinea.isEmpty())
                 {
                     pw.println(numLinea);
-                    Log.i("PhysicalDocumentHandler: palabras", "linea" + numLinea);
+                    Log.i("PhysicalDocumentHandler: words", "linea" + numLinea);
                     for(int i = 0; i < offsetPorLinea.size(); i++)
                     {
                         if(i + 1 == offsetPorLinea.size())
                             pw.println(offsetPorLinea.get(i));
                         else
                             pw.print(offsetPorLinea.get(i) + " ");
-                        Log.i("PhysicalDocumentHandler: palabras", "offset " + offsetPorLinea.get(i));
+                        Log.i("PhysicalDocumentHandler: words", "offset " + offsetPorLinea.get(i));
                     }
                 }
                 numLinea++;

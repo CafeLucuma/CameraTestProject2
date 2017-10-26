@@ -24,10 +24,10 @@ import java.io.IOException;
 
 public class ScanActivity extends AppCompatActivity {
 
-    SurfaceView cameraView;
-    BarcodeDetector barcodeDetector;
-    CameraSource cameraSource;
-    SurfaceHolder holder;
+    private SurfaceView cameraView;
+    private BarcodeDetector barcodeDetector;
+    private CameraSource cameraSource;
+    private SurfaceHolder holder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -93,7 +93,8 @@ public class ScanActivity extends AppCompatActivity {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            cameraSource.release();
+                            if(cameraSource != null)
+                                cameraSource.release();
                         }
                     });
                     setResult(RESULT_OK, intent);

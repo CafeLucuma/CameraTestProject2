@@ -1,7 +1,6 @@
 package com.example.oscar.DocumentHelper;
 
 import android.os.Environment;
-import android.provider.DocumentsContract;
 import android.util.Log;
 
 import com.example.oscar.Models.CommentModel;
@@ -19,8 +18,9 @@ import java.util.ArrayList;
  * Created by Oscar on 18-08-2017.
  */
 
-public class DocumentHandler {
-
+//se encarga de leer los documentos generados por OCR y por el subrayado del documento digital
+public class DocumentReader
+{
     private static File mediaStorageDir;
     private static File file;
     private static final String NOMBRE_ARCHIVO_HIGHLIGHTS = "prueba-highlights-text-editor.txt";
@@ -62,7 +62,9 @@ public class DocumentHandler {
         }
     }
 
-    public static HOCRModel getHOCR(String filename)
+    //funcion que lee si el archivo de hocr generado por tesseract existe
+    //si existe lo carga
+    public static HOCRModel readHOCR(String filename)
     {
         file = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + "prueba-highlights.txt");
@@ -79,8 +81,21 @@ public class DocumentHandler {
             int lineaNum;
             hocr.bboxes = new ArrayList<>();
 
+            //lee bounding box de bloque
+            linea = br.readLine();
+            String[] bloqueBBString = linea.split("\\s+");
+            int[] bloqueBBInt = new int[4];
+            //left top right bottom
+            bloqueBBInt[0] = Integer.parseInt(bloqueBBString[0]);
+            bloqueBBInt[1] = Integer.parseInt(bloqueBBString[1]);
+            bloqueBBInt[2] = Integer.parseInt(bloqueBBString[2]);
+            bloqueBBInt[3] = Integer.parseInt(bloqueBBString[3]);
+            hocr.setBlockBoundingBox(bloqueBBInt);
+
             //lee número de línea
-            while ((linea = br.readLine()) != null) {
+            while ((linea = br.readLine()) != null)
+            {
+                //lee numero de linea y top bottom pixels
                 String[] numTopBot = linea.split("\\s+");
                 int[] topBottom = new int[2];
                 hocr.numLines++;
@@ -90,12 +105,12 @@ public class DocumentHandler {
                 hocr.lineTopBottomPixels.add(topBottom);
                 //lee palabras en la linea
                 palabras = br.readLine();
-                hocr.wordsLine.add(palabras.split("\\s+"));
+                hocr.wordsPerLine.add(palabras.split("\\s+"));
 
                 ArrayList<int[]> bboxesPorLinea = new ArrayList<>();
                 //hocr.bboxes = new ArrayList<>();
 
-                for(int i = 0; i < hocr.wordsLine.get(lineaNum).length; i++)
+                for(int i = 0; i < hocr.wordsPerLine.get(lineaNum).length; i++)
                 {
                     int[] bboxes = new int[4];
                     //lee los 4 bbox en un string array
@@ -113,13 +128,15 @@ public class DocumentHandler {
                 hocr.bboxesLine.add(bboxesPorLinea.clone());
             }
             //log
-            for (String[] palabrasPorLinea: hocr.wordsLine)
+
+            Log.i("DocumentReader: words", "bloque:" + bloqueBBInt[0] + bloqueBBInt[1] + bloqueBBInt[2] + bloqueBBInt[3]);
+            for (String[] palabrasPorLinea: hocr.wordsPerLine)
             {
                 int a = 0;
-                Log.i("DocumentHandler: palabras", "linea" + a);
+                Log.i("DocumentReader: words", "linea" + a);
                 for (String word: palabrasPorLinea)
                 {
-                    Log.i("DocumentHandler: palabras", word);
+                    Log.i("DocumentReader: words", word);
                 }
                 a++;
             }
@@ -129,13 +146,13 @@ public class DocumentHandler {
                 ArrayList<int[]> arrayListInt = (ArrayList<int[]>) uno;
                 for (int[] dos: arrayListInt)
                 {
-                    Log.i("DocumentHandler: bboxesLine", " bbox: " + dos[0] + " " +dos[1] + " " +dos[2] + " " +dos[3]);
+                    Log.i("DocumentReader: bboxesLine", " bbox: " + dos[0] + " " +dos[1] + " " +dos[2] + " " +dos[3]);
                 }
             }
 
             for (int[] bb: hocr.bboxes)
             {
-                Log.i("DocumentHandler: hocr.bboxes", " bbox: " + bb[0] + " " + bb[1] + " " + bb[2] + " " + bb[3]);
+                Log.i("DocumentReader: hocr.bboxes", " bbox: " + bb[0] + " " + bb[1] + " " + bb[2] + " " + bb[3]);
             }
 
             br.close();
@@ -147,9 +164,9 @@ public class DocumentHandler {
         return hocr;
     }
 
-    public static HighlightModel getHighlights(int numLines)
+    public static HighlightModel readHighlights(int numLines)
     {
-        Log.i("DocumentHandler: highlightModel", "GETHIGHLIGHTS");
+        Log.i("DocumentReader: highlightModel", "GETHIGHLIGHTS");
 
         file = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_HIGHLIGHTS);
@@ -162,37 +179,33 @@ public class DocumentHandler {
         {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String linea;
-            String offsetPalabraString;
-            int lineaNum;
+            ArrayList<int[]> indexesArray = new ArrayList<>();
 
-            //lee número de línea
-            while ((linea = br.readLine()) != null) {
-                lineaNum = Integer.parseInt(linea);
-                offsetPalabraString = br.readLine();
-                //palabras highlight en array de string
-                String[] palabrasArray = offsetPalabraString.split("\\s+");
-                //pasar el offset de string a int
-                for (String palabra: palabrasArray)
-                {
-                    //añadir arrayList de palabras highlightmodel
-                    //hm.palabras.get(lineaNum).add(palabra);
-                    int offsetPalabra = Integer.parseInt(palabra);
-                    hm.wordOffset.get(lineaNum).add(offsetPalabra);
-                }
-
-            }
-            int a = 0;
-            for (ArrayList<Integer> uno: hm.wordOffset)
+            //lee el index de las palabras subrayadas
+            while ((linea = br.readLine()) != null)
             {
-                Log.i("DocumentHandler: highlightModel", "linea " + a);
-                a++;
-                for (int palabra: uno)
+                //como puede haber más de un index, se separa por espacio
+                String[] indexesString = linea.split("\\s+");
+                int[] indexes = new int[indexesString.length];
+                //pasar el offset de string a int
+                int i = 0;
+                for (String index: indexesString)
                 {
-                    Log.i("DocumentHandler: highlightModel", "offset palabra " + palabra);
+                    int offsetPalabra = Integer.parseInt(index);
+                    indexes[i] = offsetPalabra;
+                    i++;
                 }
-
+                indexesArray.add(indexes);
             }
+            hm.setWordsAbsoluteIndex(indexesArray);
 
+            for (int[] indexArray: hm.getWordsAbsoluteIndex())
+            {
+                for (int index: indexArray)
+                {
+                    Log.i("DocumentReader: highlightModel", "offset palabra " + index);
+                }
+            }
             br.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -203,7 +216,7 @@ public class DocumentHandler {
         return hm;
     }
 
-    public static ArrayList<CommentModel> cargarComentarios()
+    public static ArrayList<CommentModel> readComments()
     {
         file = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_COMENTARIOS);
@@ -227,9 +240,9 @@ public class DocumentHandler {
                 String[] lineAux = line.split("\\s");
                 int offset0 = Integer.parseInt(lineAux[0]);
                 int offset1 = Integer.parseInt(lineAux[1]);
-                comment.setOffsetComentarios(new int[]{offset0, offset1});
+                comment.setOffsetWordsCommented(new int[]{offset0, offset1});
 
-                //leer index palabras comentadas
+                //leer index words comentadas
                 line = br.readLine();
                 Log.i("Comments", "Segunda linea leida" + line);
                 String[] lineAux2 = line.split("\\s");
@@ -238,7 +251,7 @@ public class DocumentHandler {
                 {
                     indexPalabrasComentadas.add(Integer.parseInt(index));
                 }
-                comment.setIndexPalabrasSeleccionadas(indexPalabrasComentadas);
+                comment.setIndexWordsCommented(indexPalabrasComentadas);
 
                 //leer comentarios
                 line = br.readLine();
@@ -251,7 +264,7 @@ public class DocumentHandler {
                     line = br.readLine();
                     Log.i("Comments", "Tercera linea leida" + line);
                 }
-                comment.setComentario(lineAux3.toString());
+                comment.setComment(lineAux3.toString());
 
                 comments.add(comment);
             }
@@ -262,15 +275,14 @@ public class DocumentHandler {
 
         for (CommentModel com : comments)
         {
-            Log.i("Comments", "Comentarios: " + com.getComentario() + " " +
-                    com.getOffsetComentarios()[0] + "-" + com.getOffsetComentarios()[1]);
-            for (int ind: com.getIndexPalabrasSeleccionadas())
+            Log.i("Comments", "Comentarios: " + com.getComment() + " " +
+                    com.getOffsetWordsCommented()[0] + "-" + com.getOffsetWordsCommented()[1]);
+            for (int ind: com.getIndexWordsCommented())
             {
-                Log.i("Comments", "Index palabras seleccionadas: " + ind);
+                Log.i("Comments", "Index words seleccionadas: " + ind);
             }
         }
 
         return comments;
     }
-
 }

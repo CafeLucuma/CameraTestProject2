@@ -23,9 +23,10 @@ import java.util.Random;
  * Created by Oscar on 10-09-2017.
  */
 
+//se encarga de obtener la imagen mas limpia posible para el OCR
+
 public class ImageProcessor {
 
-    Mat mat;
     private Bitmap image;
     private Bitmap image32;
     private Mat imageMat;
@@ -110,5 +111,4 @@ public class ImageProcessor {
 
         return bm;
     }
-
 }

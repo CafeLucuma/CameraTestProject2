@@ -8,32 +8,35 @@ import java.util.ArrayList;
 
 public class CommentModel
 {
-    private int[] offsetComentarios;
-    private String comentario;
-    private ArrayList<Integer> indexPalabrasSeleccionadas;
+    //offset de donde comienza el caracter del texto comentado
+    private int[] offsetWordsCommented;
+    //comment realizado
+    private String comment;
+    //index absoluto de las palabras que fueron comentadas
+    private ArrayList<Integer> indexWordsCommented;
 
-    public ArrayList<Integer> getIndexPalabrasSeleccionadas() {
-        return indexPalabrasSeleccionadas;
+    public ArrayList<Integer> getIndexWordsCommented() {
+        return indexWordsCommented;
     }
 
-    public void setIndexPalabrasSeleccionadas(ArrayList<Integer> indexPalabrasSeleccionadas) {
-        this.indexPalabrasSeleccionadas = indexPalabrasSeleccionadas;
+    public void setIndexWordsCommented(ArrayList<Integer> indexWordsCommented) {
+        this.indexWordsCommented = indexWordsCommented;
     }
 
-    public int[] getOffsetComentarios() {
-        return offsetComentarios;
+    public int[] getOffsetWordsCommented() {
+        return offsetWordsCommented;
     }
 
-    public void setOffsetComentarios(int[] indexComentarios) {
-        this.offsetComentarios = indexComentarios;
+    public void setOffsetWordsCommented(int[] indexComentarios) {
+        this.offsetWordsCommented = indexComentarios;
     }
 
-    public String getComentario() {
-        return comentario;
+    public String getComment() {
+        return comment;
     }
 
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
 }

@@ -5,23 +5,16 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.example.oscar.Models.HOCRModel;
-import com.example.oscar.OpenCVHelper.ImageProcessor;
-import com.example.oscar.OpenCVHelper.PhysicalDocumentFunctions;
-import com.example.oscar.cameratest.MainActivity;
+import com.example.oscar.OpenCVHelper.PhysicalCommentsProcessorAsync;
+import com.example.oscar.OpenCVHelper.PhysicalHighlightProcessorAsync;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -32,8 +25,10 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 {
     private SurfaceHolder mHolder;
     private Camera mCamera;
+    private Camera.Parameters params;
     private boolean sincronizar = false;
-    private PhysicalDocumentFunctions doc;
+    private PhysicalHighlightProcessorAsync doc;
+    private PhysicalCommentsProcessorAsync com;
 
     public boolean isSincronizar() {
         return sincronizar;
@@ -53,19 +48,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     private HOCRModel hocr;
 
-
-
-
     public CameraPreview(Context context, Camera camera)
     {
         super(context);
 
         mCamera = camera;
         // get Camera parameters
-        Camera.Parameters params = mCamera.getParameters();
+        params = mCamera.getParameters();
         // set the focus mode
         params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
-        List<int[]> previewFPSRange = params.getSupportedPreviewFpsRange();
         // set Camera parameters
         mCamera.setParameters(params);
 
@@ -80,7 +71,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
 
-        // The Surface has been created, now tell the camera where to draw the preview.
+        // The Surface has been created, now tell the camera where to prepareToDraw the preview.
         try {
             mCamera.setPreviewCallback(this);
             mCamera.setPreviewDisplay(holder);
@@ -162,9 +153,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public Camera.Size getPreviewSize()
     {
-        Camera.Parameters params = mCamera.getParameters();
         Camera.Size previewSize = params.getPreviewSize();
-
         return previewSize;
     }
 
@@ -174,17 +163,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     }
 
-
     @Override
     public void onPreviewFrame(byte[] data, Camera camera)
     {
+
         if(sincronizar)
         {
-            Log.i("CameraPreview", "frame");
-
             if(doc == null)
             {
-                doc = new PhysicalDocumentFunctions(hocr);
+                doc = new PhysicalHighlightProcessorAsync(hocr);
                 Camera.Parameters parameters = camera.getParameters();
                 int width = parameters.getPreviewSize().width;
                 int height = parameters.getPreviewSize().height;
@@ -198,9 +185,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
                 doc.execute(bytes);
                 Log.i("CameraPreview", "frame: doc null");
-
             }
-
             if(doc.getStatus() == AsyncTask.Status.RUNNING)
             {
                 Log.i("CameraPreview", "frame: task running");
@@ -211,7 +196,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 if(doc.getStatus() == AsyncTask.Status.FINISHED)
                 {
                     Log.i("CameraPreview", "frame: task finished");
-                    doc = new PhysicalDocumentFunctions(hocr);
+                    doc = new PhysicalHighlightProcessorAsync(hocr);
                     Camera.Parameters parameters = camera.getParameters();
                     int width = parameters.getPreviewSize().width;
                     int height = parameters.getPreviewSize().height;
@@ -227,5 +212,54 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 }
             }
         }
+
+        /*if(sincronizar)
+        {
+            Log.i("CameraPreview", "frame");
+
+            if(doc == null)
+            {
+                doc = new PhysicalHighlightProcessorAsync(hocr);
+                Camera.Parameters parameters = camera.getParameters();
+                int width = parameters.getPreviewSize().width;
+                int height = parameters.getPreviewSize().height;
+
+                YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
+
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
+
+                byte[] bytes = out.toByteArray();
+
+                doc.execute(bytes);
+                Log.i("CameraPreview", "frame: doc null");
+            }
+
+            if(doc.getStatus() == AsyncTask.Status.RUNNING)
+            {
+                Log.i("CameraPreview", "frame: task running");
+                return;
+            }
+            else
+            {
+                if(doc.getStatus() == AsyncTask.Status.FINISHED)
+                {
+                    Log.i("CameraPreview", "frame: task finished");
+                    doc = new PhysicalHighlightProcessorAsync(hocr);
+                    Camera.Parameters parameters = camera.getParameters();
+                    int width = parameters.getPreviewSize().width;
+                    int height = parameters.getPreviewSize().height;
+
+                    YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
+
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
+
+                    byte[] bytes = out.toByteArray();
+
+                    doc.execute(bytes);
+                }
+            }
+        }*/
     }
 }
