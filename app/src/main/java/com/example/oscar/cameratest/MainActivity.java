@@ -14,6 +14,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -23,6 +24,7 @@ import android.widget.Toast;
 
 import com.example.oscar.CameraHelper.CameraPreview;
 import com.example.oscar.DocumentHelper.DocumentReader;
+import com.example.oscar.DrawHelper.CommentDrawer;
 import com.example.oscar.DrawHelper.RectangleDrawer;
 import com.example.oscar.Models.CommentModel;
 import com.example.oscar.Models.HOCRModel;
@@ -45,6 +47,17 @@ public class MainActivity extends Activity {
     public static final int PERMISSION_REQUEST = 200;
     private static final String TAG_APP = "MainActivity";
     private ArrayList<CommentModel> comments;
+
+    public ArrayList<int[]> getBboxexComment() {
+        return bboxexComment;
+    }
+
+    public void setBboxexComment(ArrayList<int[]> bboxexComment) {
+        this.bboxexComment = bboxexComment;
+    }
+
+    private ArrayList<int[]> bboxexComment;
+    private ArrayList<int[]> linesFinishStart;
     public static String datapath;
     private MenuItem sincronizar;
     private MenuItem activarComentarios;
@@ -55,6 +68,7 @@ public class MainActivity extends Activity {
     private RelativeLayout relativeLayout;
     private ListView listViewComments;
     private RectangleDrawer rect;
+    private CommentDrawer commentDrawer;
     private Camera mCamera = null;
     private CameraPreview mPreview;
     private MediaRecorder mMediaRecorder;
@@ -118,12 +132,10 @@ public class MainActivity extends Activity {
                         activarComentarios.setEnabled(false);
                         Toast.makeText(this, "No se pudieron cargar los comentrios", Toast.LENGTH_SHORT).show();
                     }
-                    else
-                    {
+                    else {
                         //obtiene comentarios string de los comments
                         List<String> comentariosString = new ArrayList<>();
-                        for (CommentModel com: comments)
-                        {
+                        for (CommentModel com : comments) {
                             comentariosString.add(com.getComment());
                         }
 
@@ -131,48 +143,75 @@ public class MainActivity extends Activity {
                         CustomCommentAdapter adapter = new CustomCommentAdapter(getApplicationContext(), R.layout.comment_row, comentariosString);
                         listViewComments.setAdapter(adapter);
 
-                        //TODO dibujar comentarios solo cuando aprete "activar comentarios"
-                        //TODO crear boundingboxes aparte para los comentarios
-                        // Add this Runnable
+                        bboxexComment = new ArrayList<>();
+                        //obtiene bboxes de todos los comentarios
+                        for (int i = 0; i < comments.size(); i++) {
+                            ArrayList<Integer> indexPalabrasHighlight = comments.get(i).getIndexWordsCommented();
+                            for (int indexPalabra : indexPalabrasHighlight) {
+                                int[] bboxes = new int[4];
+                                bboxes[0] = hocr.bboxes.get(indexPalabra)[0];
+                                bboxes[1] = hocr.bboxes.get(indexPalabra)[1];
+                                bboxes[2] = hocr.bboxes.get(indexPalabra)[2];
+                                bboxes[3] = hocr.bboxes.get(indexPalabra)[3];
+                                bboxexComment.add(bboxes);
+                            }
+                        }
+
+                        // TODO cambiarlo para que guarde todos los comentarios, pero solo dibuje los visibles
                         listViewComments.post(new Runnable() {
                             @Override
                             public void run() {
-                                ArrayList<int[]> linesFinishStart = new ArrayList<>();
-                                ArrayList<int[]> bboxesToDraw = new ArrayList<>();
-                                Log.i("CAMERATEST: LISTVIEW, childCount:", " " + listViewComments.getCount());
-                                //obtiene las coordenadas en x,y de cada comentario mostrado en pantalla
-                                for(int i = 0; i < listViewComments.getChildCount(); i++)
+                                listViewComments.setOnScrollListener(new AbsListView.OnScrollListener()
                                 {
-                                    View child = listViewComments.getChildAt(i);
-                                    int[] loc = new int[2];
-                                    child.getLocationOnScreen(loc);
-                                    int[] commentXY = new int[2];
-                                    commentXY[0] = loc[0];
-                                    commentXY[1] = loc[1];
-                                    Log.i("CAMERATEST: LISTVIEW, Posición de comment (getLocationOnScreen) ", + i + ":" + " " + loc[0] + " " + loc[1]);
-                                    linesFinishStart.add(commentXY);
-                                }
+                                    @Override
+                                    public void onScrollStateChanged(AbsListView view, int scrollState) {
 
-                                //highlight a palabra comentada en pantalla
-                                //obtiene bboxes de todos los comentarios
-                                for(int i = 0; i < comments.size(); i++)
-                                {
-                                    ArrayList<Integer> indexPalabrasHighlight =  comments.get(i).getIndexWordsCommented();
-                                    for (int indexPalabra : indexPalabrasHighlight)
-                                    {
-                                        int[] bboxes = new int[4];
-                                        bboxes[0] = hocr.bboxes.get(indexPalabra)[0];
-                                        bboxes[1] = hocr.bboxes.get(indexPalabra)[1];
-                                        bboxes[2] = hocr.bboxes.get(indexPalabra)[2];
-                                        bboxes[3] = hocr.bboxes.get(indexPalabra)[3];
-                                        bboxesToDraw.add(bboxes);
                                     }
-                                }
-                                relativeLayout.bringToFront();
-                                prepareToDraw(bboxesToDraw, false, linesFinishStart);
+
+                                    @Override
+                                    public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount)
+                                    {
+                                        linesFinishStart = new ArrayList<>();
+                                        ArrayList<int[]> bboxex = new ArrayList<>();
+                                        int first = 0;
+                                        int last = visibleItemCount - 1;
+                                        View firstChild = view.getChildAt(0);
+                                        Log.i("ChildView", "First child view top bottom " + firstChild.getTop() + " " + firstChild.getBottom());
+
+                                        if(firstChild.getTop() < 0)
+                                        {
+                                            Log.i("ChildView", "firstVisibleitem no se dibuja" + firstVisibleItem);
+                                            first++;
+                                        }
+
+                                        View lastChild = view.getChildAt(visibleItemCount - 1);
+                                        if(lastChild != null)
+                                        {
+                                            Log.i("ChildView", "Last child view top bottom " + lastChild.getTop() + " " + lastChild.getBottom());
+                                            if(lastChild.getBottom() > view.getBottom())
+                                                last--;
+                                        }
+
+                                        for(int i = first; i <= last; i++)
+                                        {
+                                            int[] loc = new int[2];
+                                            view.getChildAt(i).getLocationOnScreen(loc);
+                                            Log.i("ListView:", "Posicion en pantalla X-Y" + loc[0] + " " + loc[1]);
+                                            bboxex.add(bboxexComment.get(i));
+                                            //obtiene las coordenadas en x,y de cada comentario mostrado en pantalla (solo visibles)
+                                            //eso se debe hacer dentro de scroll listener
+                                            linesFinishStart.add(loc);
+                                        }
+
+                                        Log.i("ListView:", "firstVisibleItem-visibleItemCount: " + firstVisibleItem + "-" + visibleItemCount
+                                                + "view top bottom " + view.getTop() + " " + view.getBottom());
+                                        //mandar a commentdrawer a dibujar comentarios
+                                        prepareToDraw(bboxex, false, linesFinishStart);
+                                    }
+                                });
+
                             }
                         });
-
                     }
                 }
                 else
@@ -219,13 +258,30 @@ public class MainActivity extends Activity {
                     {
                         listViewComments.setVisibility(View.VISIBLE);
                         activarComentarios.setTitle("Desactivar Comentarios");
+                        relativeLayout.bringToFront();
+                        commentDrawer.bringToFront();
                     }
                     else
                     {
                         listViewComments.setVisibility(View.INVISIBLE);
                         activarComentarios.setTitle("Activar Comentarios");
+                        commentDrawer.clear();
                     }
                 }
+                break;
+
+            case R.id.action_clear:
+                rect.clear();
+                if(listViewComments != null)
+                {
+                    if(listViewComments.getVisibility() == View.VISIBLE)
+                    {
+                        listViewComments.setVisibility(View.INVISIBLE);
+                        activarComentarios.setTitle("Activar Comentarios");
+                        commentDrawer.clear();
+                    }
+                }
+                relativeLayout.bringToFront();
                 break;
         }
 
@@ -273,6 +329,7 @@ public class MainActivity extends Activity {
 
         //para dibujar los rectangulos en las words
         rect = (RectangleDrawer) findViewById(R.id.rdRect);
+        commentDrawer = (CommentDrawer) findViewById(R.id.cdComment);
         relativeLayout.bringToFront();
 
         searchButton = (Button) findViewById(R.id.btnSearch);
@@ -281,17 +338,6 @@ public class MainActivity extends Activity {
         captureButton.bringToFront();
         editView = (EditText) findViewById(R.id.etWrite);
         editView.bringToFront();
-
-        rect.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                Log.i("CAMERATEST: rectangledrawrew", "se toco la pantalla");
-                Log.i("CAMERATEST: postExecute", "framelayout width height: " + preview.getWidth() + " " + preview.getHeight());
-                rect.clear();
-                relativeLayout.bringToFront();
-                return false;
-            }
-        });
 
         searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -409,7 +455,7 @@ public class MainActivity extends Activity {
         if(linesFinishStart == null)
             rect.setParameters(bboxesToDraw, sinc);
         else
-            rect.setParameters(bboxesToDraw, linesFinishStart);
+            commentDrawer.setParameters(bboxesToDraw, linesFinishStart);
         rect.bringToFront();
     }
 

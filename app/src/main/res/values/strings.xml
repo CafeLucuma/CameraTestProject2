@@ -5,4 +5,5 @@
     <string name="escanear_documento">Escanear Documento</string>
     <string name="search_hint">Buscar palabra...</string>
     <string name="hint_buscar">Buscar...</string>
+    <string name="limpiar_pantalla">Limpiar pantalla</string>
 </resources>

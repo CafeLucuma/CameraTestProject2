@@ -9,52 +9,46 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
-import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
 
 /**
- * Created by oscar on 11-08-17.
+ * Created by Oscar on 26-10-2017.
  */
 
-//se encarga de dibujar en pantalla las words resaltadas
 
-public class RectangleDrawer extends View {
+//se encarga de dibujar en pantalla las words resaltadas
+public class CommentDrawer extends View {
 
     ArrayList<int[]> bboxes;
     ArrayList<int[]> linesStartFinish;
-    int color;
     private Paint paint;
     private Paint linePaint;
     private Rect rect;
     private boolean paramsSeted = false;
     private boolean clearSeted = false;
-    private boolean sincronizar = false;
-    private boolean comentar = false;
 
-
-    public RectangleDrawer(Context context) {
+    public CommentDrawer(Context context) {
         super(context);
         init();
     }
 
-    public RectangleDrawer(Context context, AttributeSet attrs) {
+    public CommentDrawer(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public RectangleDrawer(Context context, AttributeSet attrs, int defStyleAttr) {
+    public CommentDrawer(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
 
     private void init()
     {
-        color = Color.RED;
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(Color.parseColor("#aaB22222"));
+        paint.setColor(Color.parseColor("#9900CED1"));
+        paint.setStrokeWidth(5);
         rect = new Rect();
     }
 
@@ -63,11 +57,6 @@ public class RectangleDrawer extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        if (sincronizar)
-            paint.setColor(Color.parseColor("#aaffff00"));
-        else
-            paint.setColor(Color.parseColor("#aaB22222"));
 
         if (clearSeted)
         {
@@ -89,8 +78,12 @@ public class RectangleDrawer extends View {
             rect.top = bb[1];
             rect.bottom = bb[3];
             canvas.drawRect(rect, paint);
+            canvas.drawLine(bb[2], bb[1], linesStartFinish.get(i)[0], linesStartFinish.get(i)[1], paint);
+            Log.i("RECTANGLEDRAWER", "coordenadas de lineas: rect " + bb[2] + " " + bb[1] + " lines: "
+                        + linesStartFinish.get(i)[0] + " " + linesStartFinish.get(i)[1] );
             i++;
         }
+
         paramsSeted = false;
     }
 
@@ -100,14 +93,15 @@ public class RectangleDrawer extends View {
         invalidate();
     }
 
-    //setParameters para subrayado y highlight
-    public void setParameters(ArrayList<int[]> bboxes, boolean sinc)
+    //setParameters para comentario
+    public void setParameters(ArrayList<int[]> bboxes, ArrayList<int[]> linesStartFinish)
     {
-        this.sincronizar = sinc;
         this.bboxes = bboxes;
+        this.linesStartFinish = linesStartFinish;
         this.paramsSeted = true;
         invalidate();
     }
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {

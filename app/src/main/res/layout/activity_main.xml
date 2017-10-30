@@ -21,10 +21,17 @@
         android:layout_weight="1">
 
         <com.example.oscar.DrawHelper.RectangleDrawer
+            android:id="@+id/rdRect"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:id="@+id/rdRect"
-            />
+            android:background="@android:color/transparent" />
+
+        <com.example.oscar.DrawHelper.CommentDrawer
+            android:id="@+id/cdComment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent" />
+
 
         <RelativeLayout
             android:id="@+id/rlLayout"
@@ -69,6 +76,8 @@
                 android:background="@android:drawable/ic_menu_search"
                 android:visibility="invisible" />
         </RelativeLayout>
+
+
 
     </FrameLayout>
 
