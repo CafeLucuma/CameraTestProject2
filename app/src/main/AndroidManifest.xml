@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <uses-feature android:name="android.hardware.camera" />
+    <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -18,16 +19,42 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.SEARCH" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.searchable"
+                android:resource="@xml/searchable" />
+        </activity>
+        <activity android:name=".ScanActivity"
+            android:screenOrientation="landscape">
+        </activity>
+
+        <activity android:name=".ScanActivity2"
+            android:screenOrientation="landscape">
+        </activity>
+
+        <activity android:name=".MainActivityNormal"
+            android:screenOrientation="landscape">
+            <action android:name="android.intent.action.SEARCH" />
+        </activity>
+        <activity android:name=".MainActivityEstereo"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
 
         </activity>
-        <activity android:name=".ScanActivity"></activity>
-        <meta-data android:name="com.google.android.gms.vision.DEPENDENCIES" android:value="barcode" />
+
+        <meta-data
+            android:name="com.google.android.gms.vision.DEPENDENCIES"
+            android:value="barcode" />
+
+
     </application>
 
 </manifest>

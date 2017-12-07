@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.oscar.cameratest.MainActivityEstereo"
+    android:orientation="horizontal"
+    android:baselineAligned="false"
+    android:weightSum="2"
+    android:background="#ffFF4500"
+    android:clickable="true"
+    >
+
+    <LinearLayout
+        android:id="@+id/ll1"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/camera_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerVertical="true"
+            android:layout_gravity="center_vertical"
+            android:clickable="true"
+            tools:ignore="InefficientWeight">
+
+            <EditText
+                android:id="@+id/etQuery"
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:ems="10"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:hint="buscar..."
+                android:inputType="textPersonName"
+                android:maxLines="1"
+                android:textColor="@color/common_google_signin_btn_text_dark_focused"
+                android:visibility="invisible" />
+
+            <Button
+                android:id="@+id/btnMenu"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_gravity="left"
+                android:clickable="true"
+                android:contextClickable="true"
+                android:enabled="true"
+                android:text="Menu"
+                android:textColor="@color/common_google_signin_btn_text_dark_focused"
+                android:visibility="invisible" />
+
+            <ImageView
+                android:id="@+id/ivPreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@mipmap/ic_launcher" />
+
+            <com.example.oscar.DrawHelper.FrameDrawer
+                android:id="@+id/fdFrame"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent" />
+
+            <com.example.oscar.DrawHelper.RectangleDrawer
+                android:id="@+id/rdRect"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent" />
+
+            <com.example.oscar.DrawHelper.CommentDrawer
+                android:id="@+id/cdComment"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent" />
+
+            <RelativeLayout
+                android:id="@+id/rlLayout"
+                android:layout_width="105dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end">
+
+                <ListView
+                    android:id="@+id/lvComments"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="invisible" />
+
+            </RelativeLayout>
+
+        </FrameLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll2"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:orientation="horizontal"
+        android:layout_gravity="center_vertical"
+        >
+
+        <FrameLayout
+            android:id="@+id/camera_preview2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerVertical="true"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:clickable="true">
+
+            <Button
+                android:id="@+id/btnMenu2"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="left"
+                android:clickable="true"
+                android:enabled="true"
+                android:text="Menu"
+                android:textColor="@color/common_google_signin_btn_text_dark_focused"
+                android:visibility="invisible" />
+
+            <RelativeLayout
+                android:id="@+id/rlLayout2"
+                android:layout_width="105dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end">
+
+                <ListView
+                    android:id="@+id/lvComments2"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="invisible" />
+
+            </RelativeLayout>
+
+            <com.example.oscar.DrawHelper.FrameDrawer
+                android:id="@+id/fdFrame2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent" />
+
+            <com.example.oscar.DrawHelper.CommentDrawer
+                android:id="@+id/cdComment2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent" />
+
+            <com.example.oscar.DrawHelper.RectangleDrawer
+                android:id="@+id/rdRect2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent" />
+
+            <ImageView
+                android:id="@+id/ivPreview2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@mipmap/ic_launcher" />
+
+            <EditText
+                android:id="@+id/etQuery2"
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:ems="10"
+                android:hint="buscar..."
+                android:inputType="textPersonName"
+                android:textColor="@color/common_google_signin_btn_text_dark_focused"
+                android:visibility="invisible" />
+
+        </FrameLayout>
+    </LinearLayout>
+
+</LinearLayout>

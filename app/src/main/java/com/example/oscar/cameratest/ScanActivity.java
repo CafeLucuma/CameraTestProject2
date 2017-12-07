@@ -55,7 +55,8 @@ public class ScanActivity extends AppCompatActivity {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
 
-                try {
+                try
+                {
                     if(ContextCompat.checkSelfPermission(ScanActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
                     {
                         cameraSource.start(cameraView.getHolder());
@@ -74,6 +75,7 @@ public class ScanActivity extends AppCompatActivity {
             public void surfaceDestroyed(SurfaceHolder holder) {
 
             }
+
         });
 
         barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {

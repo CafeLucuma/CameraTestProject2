@@ -1,34 +1,48 @@
 package com.example.oscar.CameraHelper;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
 import android.graphics.Rect;
+import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.ImageView;
 
 import com.example.oscar.Models.HOCRModel;
-import com.example.oscar.OpenCVHelper.PhysicalCommentsProcessorAsync;
 import com.example.oscar.OpenCVHelper.PhysicalHighlightProcessorAsync;
-import com.example.oscar.cameratest.MainActivityNormal;
+import com.example.oscar.cameratest.MainActivity;
+import com.example.oscar.cameratest.MainActivityEstereo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 
+import static android.R.attr.x;
+
 /**
  * Created by oscar on 08-08-17.
  */
 
-public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback
+public class CameraPreview2_0 extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback
 {
     private SurfaceHolder mHolder;
+    private SurfaceTexture surfaceTexture;
     private Camera mCamera;
     private Camera.Parameters params;
     private boolean sincronizar = false;
     private PhysicalHighlightProcessorAsync doc;
+    private ImageView imageView;
+    private ImageView imageView2;
+    private int bufferSize;
+    private BitmapFactory.Options options;
+    private Context context;
+    private int sampleSize;
 
     public boolean isSincronizar() {
         return sincronizar;
@@ -49,13 +63,18 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     private HOCRModel hocr;
 
-    public CameraPreview(Context context, Camera camera)
+    public CameraPreview2_0(Context context, Camera camera, ImageView imageView, ImageView imageView2, int reqWidth, int reqHeight)
     {
         super(context);
 
-        mCamera = camera;
+        this.context = context;
+        this.imageView = imageView;
+        this.imageView2 = imageView2;
+        this.mCamera = camera;
+        surfaceTexture = new SurfaceTexture(0);
         // get Camera parameters
         params = mCamera.getParameters();
+        //calcular sample size para bitmap
         // set the focus mode
         //params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
 
@@ -72,9 +91,20 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Log.i("CAMERATEST: postExecute", "pictureSize SELECTED " + pictureSizeSet.width + " x " + pictureSizeSet.height);
 
         params.setPictureSize(pictureSizeSet.width, pictureSizeSet.height);
+            //TODO calcular el preview size mas cercano a reqwidth reqheigth
+
+        params.setPreviewSize(640, 480);
 
         // set Camera parameters
         mCamera.setParameters(params);
+
+        try {
+            mCamera.setPreviewTexture(surfaceTexture);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mCamera.setPreviewCallback(this);
+        mCamera.startPreview();
 
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
@@ -116,12 +146,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Camera.Size pictureSize = params.getPictureSize();
             int previewFormat = params.getPreviewFormat();
             List<int[]> previewFPSRange = params.getSupportedPreviewFpsRange();
+            int[] fpsRange = new int[2];
+            params.getPreviewFpsRange(fpsRange);
 
             //Log.i("CAMERATEST: postExecute", "pictureSize Now: " + pictureSize.width + " x " + pictureSize.height);
             Log.i("CAMERATEST: postExecute", "preferedVideoSize Now: " + preferedVideoSize.width + " x " + preferedVideoSize.height);
             Log.i("CAMERATEST: postExecute", "previewSize Now: " + previewSize.width + " x " + previewSize.height);
             Log.i("CAMERATEST: postExecute", "pictureSize Now: " + pictureSize.width + " x " + pictureSize.height);
             Log.i("CAMERATEST: postExecute", "previewFormat Now: " + previewFormat);
+            Log.i("CAMERATEST: postExecute", "previewFpsRate Now: " + fpsRange [0] + " " + fpsRange[1]);
             for (int[] i: previewFPSRange)
             {
                 Log.i("CAMERATEST: postExecute", "previewFPSRAnge: " );
@@ -175,6 +208,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         return previewSize;
     }
 
+    public Camera.Size getPictureSize()
+    {
+        Camera.Size pictureSize = params.getPictureSize();
+        return pictureSize;
+    }
+
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         // empty. Take care of releasing the Camera preview in your activity.
@@ -184,23 +223,33 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void onPreviewFrame(byte[] data, Camera camera)
     {
+        if(data == null)
+        {
+            return;
+        }
+        //onpreviewframe retorna la imagen (data) con el tamaña de preview size
+        //Log.i("CameraPreview", "frame!");
+        int width = params.getPreviewSize().width;
+        int height = params.getPreviewSize().height;
+
+        YuvImage yuv = new YuvImage(data, params.getPreviewFormat(), width, height, null);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
+        byte[] bytes = out.toByteArray();
+        //convertir a bitmap
+        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        //scalebitmap para llenar imageView
+        bmp = Bitmap.createScaledBitmap(bmp, imageView.getWidth(), imageView.getHeight(), true);
+        imageView.setImageBitmap(bmp);
+        imageView2.setImageBitmap(bmp);
+
         if(sincronizar)
         {
             if(doc == null)
             {
                 doc = new PhysicalHighlightProcessorAsync(hocr);
-                Camera.Parameters parameters = camera.getParameters();
-                int width = parameters.getPreviewSize().width;
-                int height = parameters.getPreviewSize().height;
-
-                YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
-
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
-
-                byte[] bytes = out.toByteArray();
-
-                doc.execute(bytes, MainActivityNormal.filename);
+                doc.execute(bytes, MainActivityEstereo.filename);
                 Log.i("CameraPreview", "frame: doc null");
             }
             if(doc.getStatus() == AsyncTask.Status.RUNNING)
@@ -214,69 +263,32 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 {
                     Log.i("CameraPreview", "frame: task finished");
                     doc = new PhysicalHighlightProcessorAsync(hocr);
-                    Camera.Parameters parameters = camera.getParameters();
-                    int width = parameters.getPreviewSize().width;
-                    int height = parameters.getPreviewSize().height;
-
-                    YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
-
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
-
-                    byte[] bytes = out.toByteArray();
-
-                    doc.execute(bytes, MainActivityNormal.filename);
+                    doc.execute(bytes, MainActivityEstereo.filename);
                 }
             }
         }
+    }
 
-        /*if(sincronizar)
-        {
-            Log.i("CameraPreview", "frame");
+    public int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
 
-            if(doc == null)
-            {
-                doc = new PhysicalHighlightProcessorAsync(hocr);
-                Camera.Parameters parameters = camera.getParameters();
-                int width = parameters.getPreviewSize().width;
-                int height = parameters.getPreviewSize().height;
+        if (height > reqHeight || width > reqWidth) {
 
-                YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
 
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
-
-                byte[] bytes = out.toByteArray();
-
-                doc.execute(bytes);
-                Log.i("CameraPreview", "frame: doc null");
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
             }
+        }
 
-            if(doc.getStatus() == AsyncTask.Status.RUNNING)
-            {
-                Log.i("CameraPreview", "frame: task running");
-                return;
-            }
-            else
-            {
-                if(doc.getStatus() == AsyncTask.Status.FINISHED)
-                {
-                    Log.i("CameraPreview", "frame: task finished");
-                    doc = new PhysicalHighlightProcessorAsync(hocr);
-                    Camera.Parameters parameters = camera.getParameters();
-                    int width = parameters.getPreviewSize().width;
-                    int height = parameters.getPreviewSize().height;
-
-                    YuvImage yuv = new YuvImage(data, parameters.getPreviewFormat(), width, height, null);
-
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    yuv.compressToJpeg(new Rect(0, 0, width, height), 50, out);
-
-                    byte[] bytes = out.toByteArray();
-
-                    doc.execute(bytes);
-                }
-            }
-        }*/
+        return inSampleSize;
     }
 }

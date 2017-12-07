@@ -51,7 +51,6 @@ public class ImageProcessor {
 
     public Bitmap cleanImage()
     {
-
         String root = Environment.getExternalStorageDirectory().toString();
         File myDir = new File(root + "/req_images");
         myDir.mkdirs();

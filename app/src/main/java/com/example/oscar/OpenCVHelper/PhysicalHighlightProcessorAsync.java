@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.example.oscar.Models.HOCRModel;
 import com.example.oscar.Models.HighlightModel;
+import com.example.oscar.cameratest.MainActivity;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -28,6 +29,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import static android.R.attr.offset;
 
 /**
  * Created by Oscar on 06-09-2017.
@@ -52,6 +55,7 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
     private ArrayList<int[]> minY_MaxY;
     private final String NOMBRE_ARCHIVO_SUBRAYADOS = "prueba-subrayados.txt";
     private final String NOMBRE_ARCHIVO_COMENTARIOS = "prueba-comentarios.jpg";
+    private String filename;
 
     public PhysicalHighlightProcessorAsync(HOCRModel hocrModel)
     {
@@ -69,6 +73,7 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
         //Procesar comentarios primero
         Log.i("PhysicalDocumentHandler: words", "doingBackground");
         byte[] data = (byte[]) params[0];
+        filename = (String) params[1];
         image = BitmapFactory.decodeByteArray(data, 0, data.length);
         //transformar bitmap a mat
         imageMat = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8UC3);
@@ -93,7 +98,7 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
         Mat outputImage = new Mat();
         //BGR BLUE GREEN RED
         //detectar color subrayado
-        Core.inRange(imageMat, new Scalar(70, 30, 90), new Scalar(130, 70, 170), outputImage);
+        Core.inRange(imageMat, new Scalar(10, 130, 90), new Scalar(55, 230, 160), outputImage);
         Log.i("OpenCV", "channel outputImage" + outputImage.channels());
 
         //ENCONTRAR CONTORNO DE LA IMAGEN
@@ -112,6 +117,29 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
         Mat hierarchy2 = new Mat();
         List<MatOfPoint> contours2 = new ArrayList<>();
         Imgproc.findContours(outputImage, contours2, hierarchy2, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        //guardar imagen erosionada////////////////
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + filename + "outputimage.jpg");
+        File file2 = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + filename + "outputimage-contours.txt");
+        Bitmap bm2 = Bitmap.createBitmap(outputImage.cols(), outputImage.rows(),Bitmap.Config.ARGB_8888);
+        //Bitmap bm3 = Bitmap.createBitmap(hierarchy2.cols(), hierarchy2.rows(),Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(outputImage, bm2);
+        //Utils.matToBitmap(hierarchy2, bm3);
+        FileOutputStream out = null;
+        //FileOutputStream out2 = null;
+        try {
+            out = new FileOutputStream(file);
+          //  out2 = new FileOutputStream(file2);
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        bm2.compress(Bitmap.CompressFormat.JPEG, 90, out);
+        bm2.recycle();
+        //bm3.compress(Bitmap.CompressFormat.JPEG, 90, out);
+        //bm3.recycle();
 
         //contours a point
         int cantCont = 0;
@@ -162,6 +190,12 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
         //ver linea que esta subrayada
         int numLinea = 0;
         boolean siguienteContorno = false;
+        highlightModel.wordsIndex = new ArrayList<>(hocrModel.numLines);
+        for(int i = 0; i < hocrModel.numLines; i++)
+        {
+            ArrayList<Integer> offset = new ArrayList<>();
+            highlightModel.wordsIndex.add(offset);
+        }
         //para cada linea
         for (int[] topBottomPixels: hocrModel.lineTopBottomPixels)
         {
@@ -264,7 +298,7 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
         super.onPostExecute(aVoid);
 
         File fileHighlights = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_SUBRAYADOS);
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + filename + "-subrayados.txt");
 
         //guardar la imagen recortada
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
@@ -273,7 +307,7 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
         if(!mediaStorageDir.exists())
             mediaStorageDir.mkdir();
 
-        File fileComments = new File(mediaStorageDir, NOMBRE_ARCHIVO_COMENTARIOS);
+        File fileComments = new File(mediaStorageDir, filename + "-comentarios.jpg");
 
         FileOutputStream out = null;
         try {
@@ -286,7 +320,6 @@ public class PhysicalHighlightProcessorAsync extends AsyncTask<Object, Object, V
 
         if(fileHighlights.exists())
             fileHighlights.delete();
-
 
         //guardar subrayados
         FileOutputStream f = null;

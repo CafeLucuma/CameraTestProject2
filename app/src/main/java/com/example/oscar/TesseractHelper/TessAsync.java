@@ -1,11 +1,14 @@
 package com.example.oscar.TesseractHelper;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.util.Log;
 
 import com.example.oscar.OpenCVHelper.ImageProcessor;
+import com.example.oscar.cameratest.MainActivity;
+import com.example.oscar.cameratest.MainActivityNormal;
 import com.googlecode.tesseract.android.ResultIterator;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
@@ -41,9 +44,13 @@ public class TessAsync extends AsyncTask<Object, String, ArrayList<int[]>> {
         searchedWord = (String) params[1];
         datapath = (String) params[2];
         previewSize = (Camera.Size) params[3];
+        int cam = (int) params[4];
         ImageProcessor imageProcessor = new ImageProcessor(imageByte);
         image = imageProcessor.cleanImage();
-        image = Bitmap.createScaledBitmap(image, previewSize.width, previewSize.height, false);
+        //image = BitmapFactory.decodeByteArray(imageByte, 0, imageByte.length);
+        if(cam == 1)
+            image = Bitmap.createScaledBitmap(image, previewSize.width, previewSize.height, false);
+
         Log.i("CAMERATEST: HOCR: image width height: ",  image.getWidth() + " " + image.getHeight());
 
         if(mTess == null)
@@ -67,7 +74,7 @@ public class TessAsync extends AsyncTask<Object, String, ArrayList<int[]>> {
         bboxes.clear();
         bboxesToDraw.clear();
 
-        //recorrer la lista de alabras del texto reconocido
+        //recorrer la lista de palabras del texto reconocido
         iterator.begin();
         words.add(iterator.getUTF8Text(TessBaseAPI.PageIteratorLevel.RIL_WORD));
         Log.i("CAMERATEST: iterator", "word: " + iterator.getUTF8Text(TessBaseAPI.PageIteratorLevel.RIL_WORD));
@@ -84,7 +91,7 @@ public class TessAsync extends AsyncTask<Object, String, ArrayList<int[]>> {
             bboxes.add(iterator.getBoundingBox(TessBaseAPI.PageIteratorLevel.RIL_WORD));
             Log.i("CAMERATEST: iterator", "word: " + iterator.getUTF8Text(TessBaseAPI.PageIteratorLevel.RIL_WORD));
 
-            if(searchedWord.equalsIgnoreCase(words.get(words.size() - 1)))
+            if(searchedWord.equalsIgnoreCase(words.get(words.size() - 1).replaceAll("[^a-zA-Z]", "")))
             {
                 bboxesToDraw.add(iterator.getBoundingBox(TessBaseAPI.PageIteratorLevel.RIL_WORD));
             }

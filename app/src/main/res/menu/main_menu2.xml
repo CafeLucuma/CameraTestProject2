@@ -8,29 +8,27 @@
         android:title="@string/escanear_documento" />
     <item
         android:id="@+id/action_activarComentarios"
-        android:enabled="false"
-        android:title="Activar Comentarios"
         android:background="#EE4876ff"
-        />
+        android:enabled="true"
+        android:title="Comentarios" />
+        and
     <item
-        android:id="@+id/action_sincronize"
-        android:title="Sincronizar"
-        app:showAsAction="never"
-        android:enabled="false"
-        android:background="#EE4876ff"
-        />
 
+        android:id="@+id/action_sincronize"
+        android:background="#EE4876ff"
+        android:enabled="true"
+        android:title="Sincronizar"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_search"
+        android:enabled="true"
+        android:icon="@drawable/ic_search_black_24dp"
+        android:title="Buscar palabra" />
     <item
         android:id="@+id/action_clear"
         android:background="#EE4876ff"
         android:enabled="true"
-        android:title="@string/limpiar_pantalla"/>
-
-    <item
-        android:id="@+id/action_search"
-        app:actionViewClass="android.support.v7.widget.SearchView"
-        android:icon="@drawable/ic_search_black_24dp"
-        android:title="Search"
-        app:showAsAction="always" />
+        android:title="Limpiar pantalla" />
 
 </menu>

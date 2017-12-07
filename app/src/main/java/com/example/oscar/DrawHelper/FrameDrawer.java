@@ -4,58 +4,53 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
-import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
 
 /**
- * Created by oscar on 11-08-17.
+ * Created by Oscar on 26-10-2017.
  */
 
-//se encarga de dibujar en pantalla las words resaltadas
 
-public class RectangleDrawer extends View {
-
-    ArrayList<int[]> bboxes;
-    ArrayList<int[]> linesStartFinish;
+//se encarga de dibujar en pantalla las lineas del frame
+public class FrameDrawer extends View {
+    private ArrayList<Point> lineLeft;
+    private ArrayList<Point> lineTop;
+    private ArrayList<Point> lineRight;
+    private ArrayList<Point> lineBottom;
     int color;
     private Paint paint;
-    private Paint linePaint;
-    private Rect rect;
     private boolean paramsSeted = false;
     private boolean clearSeted = false;
-    private boolean sincronizar = false;
-    private boolean comentar = false;
 
-
-    public RectangleDrawer(Context context) {
+    public FrameDrawer(Context context) {
         super(context);
         init();
     }
 
-    public RectangleDrawer(Context context, AttributeSet attrs) {
+    public FrameDrawer(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public RectangleDrawer(Context context, AttributeSet attrs, int defStyleAttr) {
+    public FrameDrawer(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
 
     private void init()
     {
-        color = Color.RED;
+        color = Color.BLACK;
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(Color.parseColor("#55B22222"));
-        rect = new Rect();
+        paint.setColor(Color.BLACK);
+        paint.setStrokeWidth(5);
     }
 
     //sibuja en pantalla lo que se encuentra en bboxes
@@ -63,11 +58,6 @@ public class RectangleDrawer extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        if (sincronizar)
-            paint.setColor(Color.parseColor("#55ffff00"));
-        else
-            paint.setColor(Color.parseColor("#55B22222"));
 
         if (clearSeted)
         {
@@ -79,18 +69,24 @@ public class RectangleDrawer extends View {
         if (!this.paramsSeted)
             return;
 
-        canvas.getClipBounds(rect);
+        canvas.drawLine(lineLeft.get(0).x, lineLeft.get(0).y, lineLeft.get(1).x, lineLeft.get(1).y, paint);
+        Log.i("FrameDrawer", "left: " + lineLeft.get(0).x + " "
+                + lineLeft.get(0).y + " " + lineLeft.get(1).x + " " + lineLeft.get(1).y);
 
-        int i = 0;
-        for (int[] bb : this.bboxes)
-        {
-            rect.left = bb[0];
-            rect.right = bb[2];
-            rect.top = bb[1];
-            rect.bottom = bb[3];
-            canvas.drawRect(rect, paint);
-            i++;
-        }
+        canvas.drawLine(lineTop.get(0).x, lineTop.get(0).y, lineTop.get(1).x, lineTop.get(1).y, paint);
+        Log.i("FrameDrawer", "top: " + lineTop.get(0).x + " "
+                + lineTop.get(0).y + " " + lineTop.get(1).x + " " + lineTop.get(1).y);
+
+        canvas.drawLine(lineRight.get(0).x, lineRight.get(0).y, lineRight.get(1).x, lineRight.get(1).y, paint);
+        Log.i("FrameDrawer", "right: " + lineRight.get(0).x + " "
+                + lineRight.get(0).y + " " + lineRight.get(1).x + " " + lineRight.get(1).y);
+
+        canvas.drawLine(lineBottom.get(0).x, lineBottom.get(0).y, lineBottom.get(1).x, lineBottom.get(1).y, paint);
+        Log.i("FrameDrawer", "bottom: " + lineBottom.get(0).x + " " + lineBottom.get(0).y
+                + " " + lineBottom.get(1).x + " " + lineBottom.get(1).y);
+
+        //Log.i("RECTANGLEDRAWER", "coordenadas de lineas: rect " + bb[2] + " " + bb[1] + " lines: "
+          //              + linesStartFinish.get(i)[0] + " " + linesStartFinish.get(i)[1] );
         paramsSeted = false;
     }
 
@@ -100,14 +96,17 @@ public class RectangleDrawer extends View {
         invalidate();
     }
 
-    //setParameters para subrayado y highlight
-    public void setParameters(ArrayList<int[]> bboxes, boolean sinc)
+    //setParameters para comentario
+    public void setParameters(ArrayList<Point> lineLeft, ArrayList<Point> lineTop, ArrayList<Point> lineRight, ArrayList<Point> lineBottom)
     {
-        this.sincronizar = sinc;
-        this.bboxes = bboxes;
+        this.lineLeft = lineLeft;
+        this.lineTop = lineTop;
+        this.lineRight = lineRight;
+        this.lineBottom = lineBottom;
         this.paramsSeted = true;
         invalidate();
     }
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {

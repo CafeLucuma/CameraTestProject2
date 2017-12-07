@@ -6,6 +6,7 @@ import android.util.Log;
 import com.example.oscar.Models.CommentModel;
 import com.example.oscar.Models.HOCRModel;
 import com.example.oscar.Models.HighlightModel;
+import com.example.oscar.cameratest.MainActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -22,16 +23,16 @@ import java.util.ArrayList;
 public class DocumentReader
 {
     private static File mediaStorageDir;
-    private static File file;
+    //private static File file;
     private static final String NOMBRE_ARCHIVO_HIGHLIGHTS = "prueba-highlights-text-editor.txt";
     public static final String NOMBRE_ARCHIVO_COMENTARIOS = "comentarios.txt";
 
-    public static boolean docExists(String filename) {
+    public static boolean docExists(String filename, int cam) {
         // To be safe, you should check that the SDCard is mounted
         // using Environment.getExternalStorageState() before doing this.
 
         mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments");
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/");
         // This location works best if you want the created images to be shared
         // between applications and persist after your app has been uninstalled.
 
@@ -47,7 +48,12 @@ public class DocumentReader
             }
         }
 
-        File file = new File(mediaStorageDir + "/" + filename);
+        File file;
+        if(cam == 1)
+            file = new File(mediaStorageDir + "/" + filename + "-hocr.txt");
+        else
+            file = new File(mediaStorageDir + "/" + filename + "-cam2-hocr.txt");
+
         Log.i("CAMERATEST: DOC", "filepath: " + file);
 
         if(file.exists())
@@ -64,10 +70,19 @@ public class DocumentReader
 
     //funcion que lee si el archivo de hocr generado por tesseract existe
     //si existe lo carga
-    public static HOCRModel readHOCR(String filename)
+    public static HOCRModel readHOCR(String filename, int cam)
     {
-        file = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + "prueba-highlights.txt");
+        File file;
+        if(cam == 1)
+        {
+            file = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + filename + "-hocr.txt");
+        }
+        else
+        {
+            file = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + filename + "-cam2-hocr.txt");
+        }
 
         HOCRModel hocr = new HOCRModel();
 
@@ -164,12 +179,13 @@ public class DocumentReader
         return hocr;
     }
 
-    public static HighlightModel readHighlights(int numLines)
+    public static HighlightModel readHighlights(int numLines, String filename)
     {
         Log.i("DocumentReader: highlightModel", "GETHIGHLIGHTS");
 
+        File file;
         file = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_HIGHLIGHTS);
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + filename + "-highlights-text-editor.txt");
 
         if(!file.exists())
             return null;
@@ -216,10 +232,11 @@ public class DocumentReader
         return hm;
     }
 
-    public static ArrayList<CommentModel> readComments()
+    public static ArrayList<CommentModel> readComments(String filename)
     {
+        File file;
         file = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + NOMBRE_ARCHIVO_COMENTARIOS);
+                Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/" + filename + "-comentarios.txt");
 
         if(!file.exists())
             return null;

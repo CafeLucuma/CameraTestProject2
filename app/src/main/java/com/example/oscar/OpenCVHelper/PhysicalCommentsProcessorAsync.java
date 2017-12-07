@@ -69,6 +69,7 @@ public class PhysicalCommentsProcessorAsync extends AsyncTask<Object, Void, Bitm
         //guardar la imagen recortada
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "CameraTestDocuments/commentImages");
+
         if(!mediaStorageDir.exists())
             mediaStorageDir.mkdir();
 
