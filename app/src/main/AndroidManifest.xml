@@ -43,7 +43,8 @@
             <action android:name="android.intent.action.SEARCH" />
         </activity>
         <activity android:name=".MainActivityEstereo"
-            android:screenOrientation="landscape">
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateHidden|stateAlwaysHidden">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>

@@ -72,6 +72,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Log.i("CAMERATEST: postExecute", "pictureSize SELECTED " + pictureSizeSet.width + " x " + pictureSizeSet.height);
 
         params.setPictureSize(pictureSizeSet.width, pictureSizeSet.height);
+        params.setPreviewSize(1600, 1200);
 
         // set Camera parameters
         mCamera.setParameters(params);
@@ -278,5 +279,10 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 }
             }
         }*/
+    }
+
+    private void setParameters()
+    {
+
     }
 }

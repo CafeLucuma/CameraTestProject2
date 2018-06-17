@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 
+import static android.R.attr.width;
 import static android.R.attr.x;
 
 /**
@@ -93,7 +94,11 @@ public class CameraPreview2_0 extends SurfaceView implements SurfaceHolder.Callb
         params.setPictureSize(pictureSizeSet.width, pictureSizeSet.height);
             //TODO calcular el preview size mas cercano a reqwidth reqheigth
 
-        params.setPreviewSize(640, 480);
+        //calcular parametro mas parecido a req width y height
+        Log.i("CAMERATEST: postExecute", "reqWIdth reqHeight" + reqWidth + " x " + reqHeight);
+        List<Camera.Size> previewSizes = params.getSupportedPreviewSizes();
+        int[] widthHeight = calcularPreviewSize(reqWidth, reqHeight, previewSizes);
+        params.setPreviewSize(widthHeight[0], widthHeight[1]);
 
         // set Camera parameters
         mCamera.setParameters(params);
@@ -112,6 +117,30 @@ public class CameraPreview2_0 extends SurfaceView implements SurfaceHolder.Callb
         mHolder.addCallback(this);
         // deprecated setting, but required on Android versions prior to 3.0
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+        Camera.Size preferedVideoSize = params.getPreferredPreviewSizeForVideo();
+        Camera.Size previewSize = params.getPreviewSize();
+        Camera.Size pictureSize = params.getPictureSize();
+        int previewFormat = params.getPreviewFormat();
+        List<int[]> previewFPSRange = params.getSupportedPreviewFpsRange();
+        int[] fpsRange = new int[2];
+        params.getPreviewFpsRange(fpsRange);
+
+        //Log.i("CAMERATEST: postExecute", "pictureSize Now: " + pictureSize.width + " x " + pictureSize.height);
+        Log.i("CAMERATEST: postExecute", "preferedVideoSize Now: " + preferedVideoSize.width + " x " + preferedVideoSize.height);
+        Log.i("CAMERATEST: postExecute", "previewSize Now: " + previewSize.width + " x " + previewSize.height);
+        Log.i("CAMERATEST: postExecute", "pictureSize Now: " + pictureSize.width + " x " + pictureSize.height);
+        Log.i("CAMERATEST: postExecute", "previewFormat Now: " + previewFormat);
+        Log.i("CAMERATEST: postExecute", "previewFpsRate Now: " + fpsRange [0] + " " + fpsRange[1]);
+        for (int[] i: previewFPSRange)
+        {
+            Log.i("CAMERATEST: postExecute", "previewFPSRAnge: " );
+            for (int fps: i)
+            {
+                Log.i("CAMERATEST: postExecute", "fps: " + fps);
+            }
+        }
+
     }
 
     @Override
@@ -269,26 +298,27 @@ public class CameraPreview2_0 extends SurfaceView implements SurfaceHolder.Callb
         }
     }
 
-    public int calculateInSampleSize(
-            BitmapFactory.Options options, int reqWidth, int reqHeight) {
-        // Raw height and width of image
-        final int height = options.outHeight;
-        final int width = options.outWidth;
-        int inSampleSize = 1;
+    public int[] calcularPreviewSize(int reqWidth, int reqHeight, List<Camera.Size> sizes)
+    {
 
-        if (height > reqHeight || width > reqWidth) {
+        int[] widthHeight = new int[2];
+        int[] widthHeightAnterior = new int[2];
 
-            final int halfHeight = height / 2;
-            final int halfWidth = width / 2;
-
-            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
-            // height and width larger than the requested height and width.
-            while ((halfHeight / inSampleSize) >= reqHeight
-                    && (halfWidth / inSampleSize) >= reqWidth) {
-                inSampleSize *= 2;
+        for (Camera.Size size: sizes)
+        {
+            if (size.width > reqWidth || size.height > reqHeight)
+            {
+                widthHeightAnterior[0] = size.width;
+                widthHeightAnterior[1] = size.height;
+            }
+            else
+            {
+                widthHeight[0] = widthHeightAnterior[0];
+                widthHeight[1] = widthHeightAnterior[1];
+                break;
             }
         }
 
-        return inSampleSize;
+        return widthHeight;
     }
 }

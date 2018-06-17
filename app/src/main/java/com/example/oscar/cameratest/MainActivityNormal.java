@@ -9,6 +9,7 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -453,6 +454,12 @@ public class MainActivityNormal extends AppCompatActivity
 
         layoutWidth = preview.getWidth();
         layoutHeight = preview.getHeight();
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+
+        Log.i("CameraTest", "Preview width and Height: " + layoutWidth + " " + layoutHeight);
+        Log.i("CameraTest", "Screen width and Height: " + size.x + " " + size.y);
         //tamaño del preview que capta la camara
         Camera.Size previewSize;
         previewSize = mPreview.getPreviewSize();

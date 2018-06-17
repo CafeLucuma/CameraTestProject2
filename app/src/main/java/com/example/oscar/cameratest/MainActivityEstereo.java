@@ -10,11 +10,13 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.PopupMenu;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -348,6 +350,7 @@ public class MainActivityEstereo extends AppCompatActivity
         camera1Selected = false;
         //this.camera = new Camera1(getContext());
         getSupportActionBar().setDisplayShowTitleEnabled(false);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         //largo y ancho de pantalla
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
@@ -450,6 +453,7 @@ public class MainActivityEstereo extends AppCompatActivity
 
             }
         });
+        etQuery.setInputType(InputType.TYPE_NULL);
 
         //setear tamaño de views a mitad de pantalla
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(widthScreen / 2, heightScreen / 2);
@@ -964,9 +968,11 @@ public class MainActivityEstereo extends AppCompatActivity
         int previewHeight = previewSize.height;
 
         //razón del ancho
-        double reasonWidth = (double) pictureWidth / previewWidth;
+        double reasonWidth = (double) 1600 / previewWidth;
+        //double reasonWidth = (double) pictureWidth / previewWidth;
         //razón del largo
-        double reasonHeight = (double) pictureHeight / previewHeight;
+        double reasonHeight = (double) 1200 / previewHeight;
+        //double reasonHeight = (double) pictureHeight / previewHeight;
 
         //hacer que boundingboxes escalen al tamaño de preview
         for (int[] bb: hocr.bboxes)

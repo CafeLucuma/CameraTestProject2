@@ -32,6 +32,8 @@ public class TessAsync extends AsyncTask<Object, String, ArrayList<int[]>> {
     private ArrayList<int[]> bboxes = new ArrayList<>();
     private ArrayList<int[]> bboxesToDraw = new ArrayList<>();
     private static final String LANG = "eng";
+    private String HOCRresult;
+    private ResultIterator iterator;
 
     //params[0] = imagen en bytes[]
     //params[1] = string con searchedWord a buscar
@@ -47,11 +49,9 @@ public class TessAsync extends AsyncTask<Object, String, ArrayList<int[]>> {
         int cam = (int) params[4];
         ImageProcessor imageProcessor = new ImageProcessor(imageByte);
         image = imageProcessor.cleanImage();
-        //image = BitmapFactory.decodeByteArray(imageByte, 0, imageByte.length);
+
         if(cam == 1)
             image = Bitmap.createScaledBitmap(image, previewSize.width, previewSize.height, false);
-
-        Log.i("CAMERATEST: HOCR: image width height: ",  image.getWidth() + " " + image.getHeight());
 
         if(mTess == null)
         {
@@ -59,16 +59,19 @@ public class TessAsync extends AsyncTask<Object, String, ArrayList<int[]>> {
             mTess.init(datapath, LANG);
         }
 
-        String OCRresult = null;
-        String HOCRresult = null;
         mTess.setImage(image);
 
         //OCRresult = mTess.getUTF8Text();
         HOCRresult = mTess.getHOCRText(0);
-        ResultIterator iterator = mTess.getResultIterator();
+        iterator = mTess.getResultIterator();
+        bboxesToDraw = searchWord();
 
+        return bboxesToDraw;
+
+    }
+
+    private ArrayList<int[]> searchWord() {
         Log.i("CAMERATEST: HOCR", HOCRresult);
-
 
         words.clear();
         bboxes.clear();
